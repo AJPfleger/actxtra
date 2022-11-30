@@ -92,7 +92,7 @@ for iUpdate in range(nUpdate):
     for d in range(len(detectorLayers)):
         h = detectorLayers[d]
         propagatedCov = straightLineCovarianceTransport(covStartParams,updatedParams,h)
-        Vi = projectMatrix(propagatedCov,proj)[0]*np.random.rand(1)*10
+        Vi = projectMatrix(propagatedCov,proj)[0]
         ri = measurments[d] - straightLinePropagator(updatedParams,h)
         chi2i = chi2_1D(Vi,ri)
         chi2sum += chi2i
