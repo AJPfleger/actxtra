@@ -10,28 +10,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 
-
-def chi2_1D(V, r):
-    return r * (1 / V) * r
+import chi2_utilities as c2u
 
 
 def straight_line_propagator(params, x_vec):
     y_vec = np.ones_like(x_vec) * params
     return y_vec
-
-
-def generate_hits(geometry, true_params, cov=0.1):
-    measurments_raw = straight_line_propagator(true_params, geometry)
-
-    cov_meas = [cov] * len(measurments_raw)
-
-    measurments = []
-    for mi in range(len(measurments_raw)):
-        m = np.random.normal(measurments_raw[mi], np.sqrt(cov_meas[mi]))
-        # m = measurments_raw[mi]
-        measurments.append(m)
-
-    return measurments, cov_meas, measurments_raw
 
 
 def get_pulls(plot_all, layers=12, cov=0.1):
@@ -50,8 +34,8 @@ def get_pulls(plot_all, layers=12, cov=0.1):
     # Hits
     true_params = 12.345
     # true_params = [np.random.uniform(-9,9)]
-    measurments, cov_meas, measurments_raw = generate_hits(
-        detectorLayers, true_params, cov
+    measurments, cov_meas, measurments_raw = c2u.generate_hits(
+        detectorLayers, true_params, straight_line_propagator, cov
     )
 
     updated_params = start_params
@@ -88,7 +72,7 @@ def get_pulls(plot_all, layers=12, cov=0.1):
             h = detectorLayers[d]
             Vi = cov_meas[d]
             ri = measurments[d] - straight_line_propagator(updated_params, h)
-            chi2sum += chi2_1D(Vi, ri)
+            chi2sum += c2u.chi2_1D(Vi, ri)
 
             ai = 1 / Vi
             bi = ri / Vi
