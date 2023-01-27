@@ -30,36 +30,17 @@ def get_pulls(plot_all, layers=12, cov=0.1):
     delta_params = np.zeros_like(start_params)
 
     # Geometry
-    # detectorLayers = np.array([2, 3, 5, 5.5, 5.7, 6.5])  # ,10,50,98,99,100])
-    detectorLayers = np.random.uniform(1, 12, layers)
+    # detector_layers = np.array([2, 3, 5, 5.5, 5.7, 6.5])  # ,10,50,98,99,100])
+    detector_layers = np.random.uniform(1, 12, layers)
 
     # Hits
     true_params = [12.345, 1]
     # true_params = [np.random.uniform(-9,9), np.random.uniform(-0.9,0.9)]
     measurments, cov_meas, measurments_raw = c2u.generate_hits(
-        detectorLayers, true_params, straight_line_propagator, cov, True
+        detector_layers, true_params, straight_line_propagator, cov, True
     )
 
     updated_params = start_params
-
-    if plot_all:
-        maxHorizontal = max(detectorLayers) + 1
-        maxVertical = 40
-        ## Set up plotting
-        fig, ax = plt.subplots()
-
-        def add_traj_to_plot(
-            params, color="b", label_text="", style="-", maxHorizontal=maxHorizontal
-        ):
-            traj = np.array(
-                [
-                    [0, maxHorizontal],
-                    straight_line_propagator(params, [0, maxHorizontal]),
-                ]
-            )
-
-            ax.plot(0, params[0], "x" + color)
-            ax.plot(traj[0], traj[1], color + style, label=label_text)
 
     ## Iterating and updating parameters
     for _ in range(n_update):
@@ -70,8 +51,8 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         a = np.zeros([2, 2])
         b = np.zeros_like(start_params)
         chi2sum = 0
-        for d in range(len(detectorLayers)):
-            h = detectorLayers[d]
+        for d in range(len(detector_layers)):
+            h = detector_layers[d]
             # propagatedCov = straightLineCovarianceTransport(updatedCov,updated_params,h)
             Vi = cov_meas[d]
             ri = measurments[d] - straight_line_propagator(updated_params, h)
@@ -91,7 +72,7 @@ def get_pulls(plot_all, layers=12, cov=0.1):
     y_pull = y_res / np.sqrt(updatedCov[0][0])
     k_pull = k_res / np.sqrt(updatedCov[1][1])
 
-    if plot_all:
+    if plot_all:        
         print(f"updated_params: {updated_params}")
         print(f"true_params: {true_params}")
         print(f"diff: {updated_params - true_params}")
@@ -100,25 +81,27 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         print(f"updatedCov:\n{updatedCov}")
         print(f"pulls: {y_pull}, {k_pull}")
         print("\n")
+        
+        max_horizontal = max(detector_layers) + 1
+        max_vertical = 40
 
-        # continue plotting
+        fig, ax = plt.subplots()
+
         # Detector
-        for d in range(len(detectorLayers)):
+        for d in range(len(detector_layers)):
             ax.plot(
-                [detectorLayers[d], detectorLayers[d]],
-                [-maxVertical, maxVertical],
+                [detector_layers[d], detector_layers[d]],
+                [-max_vertical, max_vertical],
                 "g-",
             )
-            ax.plot(detectorLayers[d], measurments[d], "gx")
+            ax.plot(detector_layers[d], measurments[d], "gx")
 
-        # Updated Trajectory
+        # Trajectoris
+        c2u.add_traj_to_plot(ax, start_params, max_horizontal, straight_line_propagator, "r", "Start Trajectory", "-")
+        c2u.add_traj_to_plot(ax, updated_params, max_horizontal, straight_line_propagator, "b", "Final Trajectory", "-")
+        c2u.add_traj_to_plot(ax, true_params, max_horizontal, straight_line_propagator, "k", "Unsmeared True Trajectory", "-.")
 
-        # Plot Trajectoris
-        add_traj_to_plot(start_params, "r", "Start Trajectory", "-")
-        add_traj_to_plot(updated_params, "b", "Final Trajectory", "-")
-        add_traj_to_plot(true_params, "k", "Unsmeared True Trajectory", "-.")
-
-        ax.set(xlabel="horizontal", ylabel="x", title="2D-Fit")
+        ax.set(xlabel="horizontal", ylabel="x", title="2D-Fit [y,k]")
         ax.legend()
 
         # fig.savefig("test.png")
