@@ -14,8 +14,8 @@ from scipy.optimize import curve_fit
 import chi2_utilities as c2u
 
 
-def fit_func(x, a):
-    return a
+def fit_func(x, y0):
+    return y0
 
 
 def straight_line_propagator(params, x_vec):
@@ -155,7 +155,7 @@ for l in layers:
     if l == layers[-1] or True:
         c2u.plot_pull_distribution(y_pul, f"y_pulls ({l} hits)")
         c2u.plot_pull_distribution(y_pul_ref, f"y_pulls_reference ({l} hits)")
-        c2u.plot_chi2_distribution(chi2sum, f"chi2sum ({l} hits)")
+        c2u.plot_chi2_distribution(chi2sum, f"$\chi^2$ ([y], {l} hits)")
 
 
 fig, ax = plt.subplots()

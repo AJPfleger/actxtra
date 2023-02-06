@@ -9,9 +9,14 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import norm
+# from scipy.stats import norm
+from scipy.optimize import curve_fit
 
 import chi2_utilities as c2u
+
+
+def fit_func(x, y0, k0):
+    return y0 + k0 * x
 
 
 def straight_line_propagator(params, x_vec):
@@ -69,9 +74,8 @@ def get_pulls(plot_all, layers=12, cov=0.1):
     updated_cov = np.linalg.inv(a)
 
     y_res, k_res = updated_params - true_params
-    k_res = np.arctan(updated_params[1]) - np.arctan(true_params[1])
     y_pull = y_res / np.sqrt(updated_cov[0][0])
-    k_pull = k_res #/ np.sqrt( (updated_cov[1][1]) )
+    k_pull = k_res / np.sqrt(updated_cov[1][1])
 
     if plot_all:        
         print(f"updated_params: {updated_params}")
@@ -108,7 +112,11 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         # fig.savefig("test.png")
         plt.show()
 
-    return y_pull, k_pull, y_res, k_res
+    popt, pcov = curve_fit(fit_func, detector_layers, measurments)
+    y_pull_ref = (popt[0]-true_params[0])/np.sqrt(pcov[0][0])
+    k_pull_ref = (popt[1]-true_params[1])/np.sqrt(pcov[1][1])
+
+    return y_pull, k_pull, y_res, k_res, y_pull_ref, k_pull_ref, chi2sum
 
 
 draws = 1000
@@ -118,22 +126,25 @@ y_pul = []
 k_pul = []
 y_res_vec = []
 k_res_vec = []
+y_pul_ref = []
+k_pul_ref = []
+chi2sum = []
 for d in range(draws):
-    y_p, k_p, y_res, k_res = get_pulls(d < 5, layers)
+    y_p, k_p, y_res, k_res, y_p_ref, k_p_ref, c2s = get_pulls(d < 5, layers)
     y_pul.append(y_p)
     k_pul.append(k_p)
     y_res_vec.append(y_res)
     k_res_vec.append(k_res)
+    y_pul_ref.append(y_p_ref)
+    k_pul_ref.append(k_p_ref)
+    chi2sum.append(c2s)
 
 
-
-# if l == layers[-1] or True:
 c2u.plot_pull_distribution(y_pul, f"y_pulls ({layers} hits)")
 c2u.plot_pull_distribution(k_pul, f"k_pulls ({layers} hits)")
-# c2u.plot_pull_distribution(y_pul_ref, f"y_pulls_reference ({l} hits)")
-# c2u.plot_chi2_distribution(chi2sum, f"chi2sum ({l} hits)")
-
-
+c2u.plot_pull_distribution(y_pul_ref, f"y_pulls_reference ({layers} hits)")
+c2u.plot_pull_distribution(k_pul_ref, f"k_pulls_reference ({layers} hits)")
+c2u.plot_chi2_distribution(chi2sum, f"$\chi^2$ ([y,k], {layers} hits)")
 
 
 from matplotlib.patches import Ellipse
