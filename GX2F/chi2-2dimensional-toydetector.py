@@ -17,36 +17,41 @@ def straight_line_propagator(params, x_vec):
 
     if not (-np.pi/2 < params[1] < np.pi/2):
         print(f"ERROR straight_line_propagator: phi {params[1]} is out of bounds")
+        if -np.pi/2 < params[1]:
+            params[1] = -np.pi/2*0.999
+        else:
+            params[1] = np.pi/2*0.999
     
     y_vec = np.ones_like(x_vec) * params[0] + x_vec * np.ones_like(x_vec) * np.tan(params[1])
 
     return y_vec
 
 
-def getPulls(plot_all):
+def get_pulls(plot_all, layers=5, cov=0.1, phi_true = -1):
     
     ## Initialising
-    n_update = 15
+    n_update = 5
 
     # Parameter
-    start_params = np.array([0.0, 0.9])  # [y, phi]
+    start_params = np.array([0.0, 0])  # [y, phi]
     delta_params = np.zeros_like(start_params)
-    # updatedCov = np.array([
+    # updated_cov = np.array([
     #     [3,0],
     #     [0,0.1],
     #     ])
 
     # Geometry
-    detector_layers = np.array([2, 3, 5, 5.5, 5.7, 6.5])  # ,10,50,98,99,100])
+    # detector_layers = np.array([2, 3, 5, 5.5, 5.7, 6.5, 10, 50, 98, 99, 100])
+    detector_layers = np.random.uniform(2, 10, layers)
     
     # Hits
-    true_params = [12.345, 1]
+    true_params = [12.345, phi_true]
     # true_params = [np.random.uniform(-9,9), np.random.uniform(-0.9,0.9)]
     measurments, cov_meas, measurments_raw = c2u.generate_hits(
         detector_layers, true_params, straight_line_propagator, 0.1, True
     )
     # proj = np.array([[1,0]]) # projects onto x
-
+    start_params = true_params
     updated_params = start_params
     
     ## Iterating and updating parameters
@@ -60,13 +65,13 @@ def getPulls(plot_all):
         chi2sum = 0
         for d in range(len(detector_layers)):
             h = detector_layers[d]
-            # propagatedCov = straightLineCovarianceTransport(updatedCov,updated_params,h)
+            # propagatedCov = straightLineCovarianceTransport(updated_cov,updated_params,h)
             Vi = cov_meas[d]
             ri = measurments[d] - straight_line_propagator(updated_params, h)
             chi2sum += c2u.chi2_1D(Vi, ri)
             
             h_cos2 = h / np.cos(updated_params[1]) ** 2
-            d2chi_dphi2 = h_cos2 ** 2 #- ri*h_cos2*2*np.tan(updated_params[1])
+            d2chi_dphi2 = h_cos2 ** 2 - 2 * ri / h_cos2 ** 2 * np.tan(updated_params[1])
             ai = (
                 1 / Vi * np.array([
                         [1,      h_cos2],
@@ -77,7 +82,7 @@ def getPulls(plot_all):
 
             a += ai
             b += bi
-        # updatedCov = np.linalg.inv(a)
+        # updated_cov = np.linalg.inv(a)
         # print(f"chi2sum =  {chi2sum:.3f}")
         # print(f'parameter: {updated_params}')
 
@@ -89,12 +94,13 @@ def getPulls(plot_all):
         # add_traj_to_plot(updated_params, "c", "", "-")
     
     # print(f'a:\n{a}')
-    updatedCov = np.linalg.inv(a)
-    # print(f'updatedCov:\n{updatedCov}')
+    updated_cov = np.linalg.inv(a)
+    # print(f'updated_cov:\n{updated_cov}')
 
-    y_pull, phi_pull = (
-        updated_params - true_params
-    )  #/ [np.sqrt(updatedCov[0][0]), np.sqrt(updatedCov[1][1])]
+    y_res, phi_res = updated_params - true_params
+    # phi_res = (np.tan(updated_params[1]) - np.tan(true_params[1])) / 3.5
+    y_pull = y_res / np.sqrt(updated_cov[0][0])
+    phi_pull = phi_res / np.sqrt(updated_cov[1][1])
 
     if plot_all:        
         print(f"updated_params: {updated_params}")
@@ -102,7 +108,7 @@ def getPulls(plot_all):
         print(f"diff: {updated_params - true_params}")
         print(f"a:\n{a}")
         print(f"cov_meas: {cov_meas}")
-        print(f"updatedCov:\n{updatedCov}")
+        print(f"updated_cov:\n{updated_cov}")
         print(f"pulls: {y_pull}, {phi_pull}")
         print("\n")
         

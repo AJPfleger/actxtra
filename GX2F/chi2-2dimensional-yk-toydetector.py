@@ -53,7 +53,7 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         chi2sum = 0
         for d in range(len(detector_layers)):
             h = detector_layers[d]
-            # propagatedCov = straightLineCovarianceTransport(updatedCov,updated_params,h)
+            # propagatedCov = straightLineCovarianceTransport(updated_cov,updated_params,h)
             Vi = cov_meas[d]
             ri = measurments[d] - straight_line_propagator(updated_params, h)
             chi2sum += c2u.chi2_1D(Vi, ri)
@@ -66,11 +66,12 @@ def get_pulls(plot_all, layers=12, cov=0.1):
 
         delta_params = np.linalg.solve(a, b.transpose())
 
-    updatedCov = np.linalg.inv(a)
+    updated_cov = np.linalg.inv(a)
 
     y_res, k_res = updated_params - true_params
-    y_pull = y_res / np.sqrt(updatedCov[0][0])
-    k_pull = k_res / np.sqrt(updatedCov[1][1])
+    k_res = np.arctan(updated_params[1]) - np.arctan(true_params[1])
+    y_pull = y_res / np.sqrt(updated_cov[0][0])
+    k_pull = k_res #/ np.sqrt( (updated_cov[1][1]) )
 
     if plot_all:        
         print(f"updated_params: {updated_params}")
@@ -78,7 +79,7 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         print(f"diff: {updated_params - true_params}")
         print(f"a:\n{a}")
         print(f"cov_meas: {cov_meas}")
-        print(f"updatedCov:\n{updatedCov}")
+        print(f"updated_cov:\n{updated_cov}")
         print(f"pulls: {y_pull}, {k_pull}")
         print("\n")
         
@@ -107,17 +108,21 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         # fig.savefig("test.png")
         plt.show()
 
-    return y_pull, k_pull
+    return y_pull, k_pull, y_res, k_res
 
 
-draws = 10000
+draws = 100000
 bins = int(np.sqrt(draws))
 y_pulls = []
 k_pulls = []
+y_res_vec = []
+k_res_vec = []
 for d in range(draws):
-    y_p, k_p = get_pulls(d < 5)
+    y_p, k_p, y_res, k_res = get_pulls(d < 5)
     y_pulls.append(y_p)
     k_pulls.append(k_p)
+    y_res_vec.append(y_res)
+    k_res_vec.append(k_res)
 
 
 mu, std = norm.fit(y_pulls)

@@ -63,11 +63,11 @@ def get_pulls(plot_all, layers=12, cov=0.1):
 
         delta_params = b / a
 
-    updatedCov = 1 / a
+    updated_cov = 1 / a
 
     y_res = updated_params - true_params
-    y_cov = updatedCov
-    y_pull = (updated_params - true_params) / np.sqrt(updatedCov)
+    y_cov = updated_cov
+    y_pull = (updated_params - true_params) / np.sqrt(updated_cov)
     
     if plot_all:
         print(f"updated_params: {updated_params}")
@@ -75,7 +75,7 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         print(f"diff: {updated_params - true_params}")
         print(f"a:\n{a}")
         print(f"cov_meas: {cov_meas}")
-        print(f"updatedCov:\n{updatedCov}")
+        print(f"updated_cov:\n{updated_cov}")
         print(f"pulls: {y_pull}")
         print("\n")
         
