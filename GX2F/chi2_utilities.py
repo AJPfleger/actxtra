@@ -1,4 +1,7 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm
+from scipy.stats import chi2
 
 
 def generate_hits(geometry, true_params, propagator, cov=0.1, smearing=True):
@@ -35,3 +38,31 @@ def add_traj_to_plot(
     except:
         ax.plot(0, params, "x" + color)
     ax.plot(traj[0], traj[1], color + style, label=label_text)
+
+
+def plot_pull_distribution(pulls, title):
+    bins = int(np.sqrt(len(pulls)))
+    mu, std = norm.fit(pulls)
+
+    fig, ax = plt.subplots()
+    plt.hist(pulls, bins=bins, density=True)
+    xmin, xmax = plt.xlim()
+    x = np.linspace(xmin, xmax, 201)
+    p = norm.pdf(x, mu, std)
+    plt.plot(x, p, "k")
+    plt.title(f"{title}: mu = {mu:.3f}, std = {std:.3f}")
+    plt.show()
+
+
+def plot_chi2_distribution(chi2sum, title):
+    bins = int(np.sqrt(len(chi2sum)))
+    df, loc, scale = chi2.fit(chi2sum)
+
+    fig, ax = plt.subplots()
+    plt.hist(chi2sum, bins=bins, density=True)
+    xmin, xmax = plt.xlim()
+    x = np.linspace(xmin, xmax, 201)
+    p = chi2.pdf(x, df, loc, scale)
+    plt.plot(x, p, "k")
+    plt.title(f"{title}: k = {df:.3f}, loc = {loc:.3f}, scale = {scale:.3f}")
+    plt.show()

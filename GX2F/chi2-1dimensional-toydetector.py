@@ -9,8 +9,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
+from scipy.optimize import curve_fit
 
 import chi2_utilities as c2u
+
+
+def fit_func(x, a):
+    return a
 
 
 def straight_line_propagator(params, x_vec):
@@ -104,7 +109,11 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         # fig.savefig("test.png")
         plt.show()
 
-    return y_pull, y_res, y_cov
+    ## automated fit
+    popt, pcov = curve_fit(fit_func, detector_layers, measurments)
+    y_pull_ref = (popt[0]-true_params)/np.sqrt(pcov[[0]])[0][0]
+
+    return y_pull, y_res, y_cov, y_pull_ref, chi2sum
 
 
 layers = [int(i ** 1.5) for i in range(2, 10)]
@@ -116,16 +125,20 @@ mu_c = []
 std_c = []
 for l in layers:
     print(f"layer {l}")
-    draws = 1000
+    draws = 10000
     bins = int(np.sqrt(draws))
     y_pul = []
     y_res = []
     y_cov = []
+    y_pul_ref = []
+    chi2sum = []
     for d in range(draws):
-        y_p, y_r, y_c = get_pulls(d < 0, l, 0.1)
+        y_p, y_r, y_c, y_p_ref, c2s = get_pulls(d < 0, l, 0.1)
         y_pul.append(y_p)
         y_res.append(abs(y_r))
         y_cov.append(np.sqrt(y_c))
+        y_pul_ref.append(y_p_ref)
+        chi2sum.append(c2s)
 
     mu, std = norm.fit(y_pul)
     mu_p.append(mu)
@@ -138,6 +151,11 @@ for l in layers:
     mu, std = norm.fit(y_cov)
     mu_c.append(mu)
     std_c.append(std)
+
+    if l == layers[-1] or True:
+        c2u.plot_pull_distribution(y_pul, f"y_pulls ({l} hits)")
+        c2u.plot_pull_distribution(y_pul_ref, f"y_pulls_reference ({l} hits)")
+        c2u.plot_chi2_distribution(chi2sum, f"chi2sum ({l} hits)")
 
 
 fig, ax = plt.subplots()
@@ -152,16 +170,6 @@ ax.legend()
 
 fig.savefig("std_of_pulls.png")
 plt.show()
-
-
-# plt.hist(y_pulls, bins=bins, density=True)
-# xmin, xmax = plt.xlim()
-# x = np.linspace(xmin, xmax, 100)
-# p = norm.pdf(x, mu, std)
-# plt.plot(x, p, "k")
-# plt.title(f"y_pulls: mu = {mu:.5f}, std = {std:.5f}")
-# plt.show()
-
 
 fig, ax = plt.subplots()
 ax.plot(layers, mu_r, "x")
