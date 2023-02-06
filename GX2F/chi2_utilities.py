@@ -50,7 +50,7 @@ def plot_pull_distribution(pulls, title):
     x = np.linspace(xmin, xmax, 201)
     p = norm.pdf(x, mu, std)
     plt.plot(x, p, "k")
-    plt.title(f"{title}: mu = {mu:.3f}, std = {std:.3f}")
+    plt.title(f"{title}: $\mu$ = {mu:.3f}, $\sigma$ = {std:.3f}")
     plt.show()
 
 

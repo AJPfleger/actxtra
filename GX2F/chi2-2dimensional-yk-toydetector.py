@@ -111,39 +111,50 @@ def get_pulls(plot_all, layers=12, cov=0.1):
     return y_pull, k_pull, y_res, k_res
 
 
-draws = 100000
+draws = 1000
+layers = 12
 bins = int(np.sqrt(draws))
-y_pulls = []
-k_pulls = []
+y_pul = []
+k_pul = []
 y_res_vec = []
 k_res_vec = []
 for d in range(draws):
-    y_p, k_p, y_res, k_res = get_pulls(d < 5)
-    y_pulls.append(y_p)
-    k_pulls.append(k_p)
+    y_p, k_p, y_res, k_res = get_pulls(d < 5, layers)
+    y_pul.append(y_p)
+    k_pul.append(k_p)
     y_res_vec.append(y_res)
     k_res_vec.append(k_res)
 
 
-mu, std = norm.fit(y_pulls)
-fig, ax = plt.subplots()
-ax.hist(y_pulls, bins=bins, density=True)
-xmin, xmax = plt.xlim()
-x = np.linspace(xmin, xmax, 100)
-p = norm.pdf(x, mu, std)
-ax.plot(x, p, "k")
-ax.set(title=f"y_pulls: mu = {mu:.5f}, std = {std:.5f}")
-fig.savefig("yk-y_pulls.png")
-plt.show()
+
+# if l == layers[-1] or True:
+c2u.plot_pull_distribution(y_pul, f"y_pulls ({layers} hits)")
+c2u.plot_pull_distribution(k_pul, f"k_pulls ({layers} hits)")
+# c2u.plot_pull_distribution(y_pul_ref, f"y_pulls_reference ({l} hits)")
+# c2u.plot_chi2_distribution(chi2sum, f"chi2sum ({l} hits)")
 
 
-mu, std = norm.fit(k_pulls)
+
+
+from matplotlib.patches import Ellipse
+
+cov = np.cov(y_res_vec, k_res_vec)
+lambda_, v = np.linalg.eig(cov)
+lambda_ = np.sqrt(lambda_)
+
 fig, ax = plt.subplots()
-ax.hist(k_pulls, bins=bins, density=True)
-xmin, xmax = plt.xlim()
-x = np.linspace(xmin, xmax, 100)
-p = norm.pdf(x, mu, std)
-ax.plot(x, p, "k")
-ax.set(title=f"k_pulls: mu = {mu:.5f}, std = {std:.5f}")
-fig.savefig("yk-k_pulls.png")
+n_scatter_points = 1000
+ax.scatter(y_res_vec[:n_scatter_points], k_res_vec[:n_scatter_points])
+
+for j in range(1, 4):
+    ell = Ellipse(xy=(np.mean(y_res_vec), np.mean(k_res_vec)),
+                  width=lambda_[0]*j*2, height=lambda_[1]*j*2,
+                  angle=np.rad2deg(np.arctan2(*v[:,0][::-1])))
+    ell.set_facecolor('none')
+    ell.set_edgecolor("red")
+    ax.add_artist(ell)
+
+# ax.set_title("y_res vs. k_res")
+ax.set(xlabel="y_res", ylabel="k_res", title="y_res vs. k_res, 1e3 runs")
+# fig.savefig("yk-y_res-vs-k_res.pdf")
 plt.show()
