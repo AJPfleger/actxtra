@@ -9,7 +9,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
-from scipy.optimize import curve_fit
+import ROOT
 
 import chi2_utilities as c2u
 
@@ -109,11 +109,20 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         # fig.savefig("test.png")
         plt.show()
 
-    ## automated fit
-    popt, pcov = curve_fit(fit_func, detector_layers, measurments)
-    y_pull_ref = (popt[0]-true_params)/np.sqrt(pcov[[0]])[0][0]
+    ## root fit
+    x_root = np.array(detector_layers)
+    y_root = np.array(measurments)
+    ex_root = x_root*0
+    ey_root = ex_root + np.sqrt(cov)
+    g_root = ROOT.TGraphErrors(len(x_root), x_root, y_root, ex_root, ey_root)
+    f_root = ROOT.TF1("f_root", "[0]")
+    t_root = g_root.Fit(f_root,"S")
 
-    return y_pull, y_res, y_cov, y_pull_ref, chi2sum
+    y_res_root = t_root.Parameter(0)-true_params
+    y_std_root = t_root.Error(0)
+    y_pull_root = y_res_root / y_std_root
+
+    return y_pull, y_res, y_cov, y_pull_root, chi2sum
 
 
 layers = [int(i ** 1.5) for i in range(2, 10)]
@@ -130,14 +139,15 @@ for l in layers:
     y_pul = []
     y_res = []
     y_cov = []
-    y_pul_ref = []
+    y_pul_root = []
     chi2sum = []
     for d in range(draws):
-        y_p, y_r, y_c, y_p_ref, c2s = get_pulls(d < 0, l, 0.1)
+        print("") # set this line when using spyder, to make root work correctly
+        y_p, y_r, y_c, y_p_root, c2s = get_pulls(d < 0, l, 0.1)
         y_pul.append(y_p)
         y_res.append(abs(y_r))
         y_cov.append(np.sqrt(y_c))
-        y_pul_ref.append(y_p_ref)
+        y_pul_root.append(y_p_root)
         chi2sum.append(c2s)
 
     mu, std = norm.fit(y_pul)
@@ -154,9 +164,8 @@ for l in layers:
 
     if l == layers[-1] or True:
         c2u.plot_pull_distribution(y_pul, f"y_pulls ({l} hits)")
-        c2u.plot_pull_distribution(y_pul_ref, f"y_pulls_reference ({l} hits)")
+        c2u.plot_pull_distribution(y_pul_root, f"y_pulls_root ({l} hits)")
         c2u.plot_chi2_distribution(chi2sum, f"$\chi^2$ ([y], {l} hits)")
-
 
 fig, ax = plt.subplots()
 ax.plot(layers, std_p, "x")
