@@ -9,8 +9,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-# from scipy.stats import norm
-from scipy.optimize import curve_fit
+import ROOT
 
 import chi2_utilities as c2u
 
@@ -112,11 +111,24 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         # fig.savefig("test.png")
         plt.show()
 
-    popt, pcov = curve_fit(fit_func, detector_layers, measurments)
-    y_pull_ref = (popt[0]-true_params[0])/np.sqrt(pcov[0][0])
-    k_pull_ref = (popt[1]-true_params[1])/np.sqrt(pcov[1][1])
+    ## root fit
+    x_root = np.array(detector_layers)
+    y_root = np.array(measurments)
+    ex_root = x_root*0
+    ey_root = ex_root + np.sqrt(cov)
+    g_root = ROOT.TGraphErrors(len(x_root), x_root, y_root, ex_root, ey_root)
+    f_root = ROOT.TF1("f_root", "[0] + [1]*x")
+    t_root = g_root.Fit(f_root,"S")
 
-    return y_pull, k_pull, y_res, k_res, y_pull_ref, k_pull_ref, chi2sum
+    y_res_root = t_root.Parameter(0)-true_params[0]
+    y_std_root = t_root.Error(0)
+    y_pull_root = y_res_root / y_std_root
+
+    k_res_root = t_root.Parameter(1)-true_params[1]
+    k_std_root = t_root.Error(1)
+    k_pull_root = k_res_root / k_std_root
+
+    return y_pull, k_pull, y_res, k_res, y_pull_root, k_pull_root, chi2sum
 
 
 draws = 1000
@@ -126,24 +138,25 @@ y_pul = []
 k_pul = []
 y_res_vec = []
 k_res_vec = []
-y_pul_ref = []
-k_pul_ref = []
+y_pul_root = []
+k_pul_root = []
 chi2sum = []
 for d in range(draws):
-    y_p, k_p, y_res, k_res, y_p_ref, k_p_ref, c2s = get_pulls(d < 5, layers)
+    print("") # set this line when using spyder, to make root work correctly
+    y_p, k_p, y_res, k_res, y_p_root, k_p_root, c2s = get_pulls(d < 5, layers)
     y_pul.append(y_p)
     k_pul.append(k_p)
     y_res_vec.append(y_res)
     k_res_vec.append(k_res)
-    y_pul_ref.append(y_p_ref)
-    k_pul_ref.append(k_p_ref)
+    y_pul_root.append(y_p_root)
+    k_pul_root.append(k_p_root)
     chi2sum.append(c2s)
 
 
 c2u.plot_pull_distribution(y_pul, f"y_pulls ({layers} hits)")
 c2u.plot_pull_distribution(k_pul, f"k_pulls ({layers} hits)")
-c2u.plot_pull_distribution(y_pul_ref, f"y_pulls_reference ({layers} hits)")
-c2u.plot_pull_distribution(k_pul_ref, f"k_pulls_reference ({layers} hits)")
+c2u.plot_pull_distribution(y_pul_root, f"y_pulls_root ({layers} hits)")
+c2u.plot_pull_distribution(k_pul_root, f"k_pulls_root ({layers} hits)")
 c2u.plot_chi2_distribution(chi2sum, f"$\chi^2$ ([y,k], {layers} hits)")
 
 
@@ -165,7 +178,6 @@ for j in range(1, 4):
     ell.set_edgecolor("red")
     ax.add_artist(ell)
 
-# ax.set_title("y_res vs. k_res")
 ax.set(xlabel="y_res", ylabel="k_res", title="y_res vs. k_res, 1e3 runs")
 # fig.savefig("yk-y_res-vs-k_res.pdf")
 plt.show()
