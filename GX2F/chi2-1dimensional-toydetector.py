@@ -103,7 +103,7 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         c2u.add_traj_to_plot(ax, updated_params, max_horizontal, straight_line_propagator, "b", "Final Trajectory", "-")
         c2u.add_traj_to_plot(ax, true_params, max_horizontal, straight_line_propagator, "k", "Unsmeared True Trajectory", "-.")
 
-        ax.set(xlabel="horizontal", ylabel="x", title="2D-Fit [y,k]")
+        ax.set(xlabel="x", ylabel="y", title="2D-Fit [y,k]")
         ax.legend()
 
         # fig.savefig("test.png")

@@ -8,8 +8,14 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+# from scipy.optimize import curve_fit
+import ROOT
 
 import chi2_utilities as c2u
+
+
+def fit_func(x, y0, phi0):
+    return y0 + np.tan(phi0) * x
 
 
 #checked
@@ -17,10 +23,15 @@ def straight_line_propagator(params, x_vec):
 
     if not (-np.pi/2 < params[1] < np.pi/2):
         print(f"ERROR straight_line_propagator: phi {params[1]} is out of bounds")
-        if -np.pi/2 < params[1]:
-            params[1] = -np.pi/2*0.999
-        else:
-            params[1] = np.pi/2*0.999
+        # if -np.pi/2 < params[1]:
+        #     params[1] = -np.pi/2*0.999
+        # else:
+        #     params[1] = np.pi/2*0.999
+        while not (-np.pi/2 < params[1] < np.pi/2):
+            if params[1] < 0:
+                params[1] += np.pi
+            else:
+                params[1] -= np.pi
     
     y_vec = np.ones_like(x_vec) * params[0] + x_vec * np.ones_like(x_vec) * np.tan(params[1])
 
@@ -71,7 +82,7 @@ def get_pulls(plot_all, layers=5, cov=0.1, phi_true = -1):
             chi2sum += c2u.chi2_1D(Vi, ri)
             
             h_cos2 = h / np.cos(updated_params[1]) ** 2
-            d2chi_dphi2 = h_cos2 ** 2 - 2 * ri / h_cos2 ** 2 * np.tan(updated_params[1])
+            d2chi_dphi2 = h_cos2 ** 2 #- 2 * ri / h_cos2 ** 2 * np.tan(updated_params[1])
             ai = (
                 1 / Vi * np.array([
                         [1,      h_cos2],
@@ -98,7 +109,6 @@ def get_pulls(plot_all, layers=5, cov=0.1, phi_true = -1):
     # print(f'updated_cov:\n{updated_cov}')
 
     y_res, phi_res = updated_params - true_params
-    # phi_res = (np.tan(updated_params[1]) - np.tan(true_params[1])) / 3.5
     y_pull = y_res / np.sqrt(updated_cov[0][0])
     phi_pull = phi_res / np.sqrt(updated_cov[1][1])
 

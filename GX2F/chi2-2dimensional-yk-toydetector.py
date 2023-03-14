@@ -87,7 +87,11 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         print("\n")
         
         max_horizontal = max(detector_layers) + 1
-        max_vertical = 40
+        min_v = min(min(measurments),start_params[0])
+        max_v = max(max(measurments),start_params[0])
+        delta_v = max_v - min_v
+        min_vertical = min_v - 0.3 * delta_v
+        max_vertical = max_v + 0.3 * delta_v
 
         fig, ax = plt.subplots()
 
@@ -95,7 +99,7 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         for d in range(len(detector_layers)):
             ax.plot(
                 [detector_layers[d], detector_layers[d]],
-                [-max_vertical, max_vertical],
+                [min_vertical, max_vertical],
                 "g-",
             )
             ax.plot(detector_layers[d], measurments[d], "gx")
@@ -105,10 +109,10 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         c2u.add_traj_to_plot(ax, updated_params, max_horizontal, straight_line_propagator, "b", "Final Trajectory", "-")
         c2u.add_traj_to_plot(ax, true_params, max_horizontal, straight_line_propagator, "k", "Unsmeared True Trajectory", "-.")
 
-        ax.set(xlabel="horizontal", ylabel="x", title="2D-Fit [y,k]")
+        ax.set(xlabel="x", ylabel="y", title="2D-Fit [y,k]")
         ax.legend()
 
-        # fig.savefig("test.png")
+        fig.savefig("yk-toydetector.pdf")
         plt.show()
 
     ## root fit
