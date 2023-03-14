@@ -19,6 +19,21 @@ def generate_hits(geometry, true_params, propagator, cov=0.1, smearing=True):
 
     return measurments, cov_meas, measurments_raw
 
+def generate_hits_scatter(geometry, geo_scatter_sigma, true_params, propagator, cov=0.1, smearing=True):
+    measurments_raw = propagator(true_params, geometry, geo_scatter_sigma)
+
+    cov_meas = [cov] * len(measurments_raw)
+
+    measurments = np.array([], dtype=float)
+    for mi in range(len(measurments_raw)):
+        if smearing:
+            m = np.random.normal(measurments_raw[mi], np.sqrt(cov_meas[mi]))
+        else:
+            m = measurments_raw[mi]
+        measurments = np.append(measurments, m)
+
+    return measurments, cov_meas, measurments_raw
+
 
 def chi2_1D(V, r):
     return r ** 2 / V  # r * (1 / V) * r
