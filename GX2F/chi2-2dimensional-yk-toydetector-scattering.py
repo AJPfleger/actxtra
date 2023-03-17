@@ -89,11 +89,24 @@ def straight_line_propagator_stepwise(params, geo_pos, is_scatter):
 def scatter(sigma):
     return np.random.normal(0, sigma)
 
+
+def df_dk(k0, theta_sum):
+    tan = np.tan(theta_sum)
+    cos = np.cos(theta_sum)
+    
+    numerator = 1 + tan ** 2
+    denominator = (1 - k0 * tan) **2
+    
+    # (1 + np.tan(theta_sum) ** 2) / (1 - k0 * np.tan(theta_sum)) + yn_shift
+    
+    return numerator / denominator
+
+
 def df_dt(k0, theta_sum):
     tan = np.tan(theta_sum)
     cos = np.cos(theta_sum)
     
-    numerator = 1 - k0 * tan + k0 + tan
+    numerator = 1 + k0 ** 2
     denominator = (cos * (1 - k0 * tan)) ** 2
     
     return numerator / denominator
@@ -148,6 +161,7 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.05):
         chi2sum = 0
         i_s = 0
         theta_sum = 0
+        yn_shift = 0
         k0 = start_params[1]
         for g in range(len(geo_layers)):
             x = geo_layers[g]
@@ -162,19 +176,25 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.05):
                 a += ai
                 b += bi
                 
+                yn_shift += x * df_dk(k0, theta_sum)
                 theta_sum += updated_params[2+i_s]
+                yn_shift -= x * df_dk(k0, theta_sum)
+                
                 i_s += 1
             else: # Detector layer
                 Vi = cov_meas[g]
                 ri = measurments_all[g] - predicted_hits[g]
                 chi2sum += c2u.chi2_1D(Vi, ri)
-    # missing: updated theta after scattering
-                c1 = x * (1 + np.tan(theta_sum) ** 2) / (1 - k0 * np.tan(theta_sum))# First derivative term
-                t1 = x * df_dt(k0, theta_sum) if i_s > 0 else 0
-                t2 = x * df_dt(k0, theta_sum) if i_s > 1 else 0
+    # missing: y1 terms
+                dydy0 = 1
+                dydk0 = x * df_dk(k0, theta_sum) #+ yn_shift
+                dydt1 = x * df_dt(k0, theta_sum) if i_s > 0 else 0
+                dydt2 = x * df_dt(k0, theta_sum) if i_s > 1 else 0
+                
+                
                 
                 # print(c1)
-                abi_vec = np.array([[1, c1, t1, t2]])
+                abi_vec = np.array([[dydy0, dydk0, dydt1, dydt2]])
                 ai = 1 / Vi * np.matmul(abi_vec.T,abi_vec)
                 bi = ri / Vi * abi_vec[0]
                 # ai = 1 / Vi * np.array([
@@ -186,7 +206,7 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.05):
     
                 a += ai
                 b += bi
-        print(f"theta_sum:\n{theta_sum}")
+        # print(f"theta_sum:\n{theta_sum}")
         delta_params = np.linalg.solve(a, b.transpose())
 
     updated_cov = np.linalg.inv(a)
@@ -209,7 +229,7 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.05):
         print(params_pulls)
         print("\n")
         
-        max_horizontal = max(geo_layers) + 1
+        # max_horizontal = max(geo_layers) + 1
         delta_measurments = abs(max(measurments_all) - min(measurments_all))
         min_vertical = min(measurments_all) - 0.3 * delta_measurments
         max_vertical = max(measurments_all) + 0.3 * delta_measurments
@@ -242,7 +262,7 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.05):
         #fig.savefig("toydetector-scattering-straight-fit.pdf")
         plt.show()
 
-    return y_pull, k_pull, y_res, k_res, chi2sum
+    return params_res, params_pulls, chi2sum
 
 
 draws = 1
@@ -250,20 +270,35 @@ layers = 12
 bins = int(np.sqrt(draws))
 y_pul = []
 k_pul = []
-y_res_vec = []
-k_res_vec = []
+t1_pul = []
+t2_pul = []
+y_res = []
+k_res = []
+t1_res = []
+t2_res = []
 chi2sum = []
 for d in range(draws):
-    print("") # set this line when using spyder, to make root work correctly
-    y_p, k_p, y_res, k_res, c2s = get_pulls(d < 5, layers)
-    y_pul.append(y_p)
-    k_pul.append(k_p)
-    y_res_vec.append(y_res)
-    k_res_vec.append(k_res)
+    # print("") # set this line when using spyder, to make root work correctly
+    p_res, p_pulls, c2s = get_pulls(d < 5, layers)
+    y_pul.append(p_pulls[0])
+    k_pul.append(p_pulls[1])
+    t1_pul.append(p_pulls[2])
+    t2_pul.append(p_pulls[3])
+    y_res.append(p_res[0])
+    k_res.append(p_res[1])
+    t1_res.append(p_res[2])
+    t2_res.append(p_res[3])
     chi2sum.append(c2s)
+
+# c2u.plot_pull_distribution(y_res, f"y_res ({layers} hits)")
+# c2u.plot_pull_distribution(k_res, f"k_res({layers} hits)")
+# c2u.plot_pull_distribution(t1_res, f"t1_res ({layers} hits)")
+# c2u.plot_pull_distribution(t2_res, f"t2_res ({layers} hits)")
 
 # c2u.plot_pull_distribution(y_pul, f"y_pulls ({layers} hits)")
 # c2u.plot_pull_distribution(k_pul, f"k_pulls ({layers} hits)")
+# c2u.plot_pull_distribution(t1_pul, f"t1_pulls ({layers} hits)")
+# c2u.plot_pull_distribution(t2_pul, f"t2_pulls ({layers} hits)")
 # c2u.plot_chi2_distribution(chi2sum, f"$\chi^2$ ([y,k], {layers} hits)")
 
 
