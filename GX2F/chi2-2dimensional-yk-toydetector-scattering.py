@@ -92,7 +92,6 @@ def scatter(sigma):
 
 def df_dk(k0, theta_sum):
     tan = np.tan(theta_sum)
-    cos = np.cos(theta_sum)
     
     numerator = 1 + tan ** 2
     denominator = (1 - k0 * tan) **2
@@ -163,10 +162,14 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.05):
         theta_sum = 0
         yn_shift = 0
         k0 = start_params[1]
+        x_s = np.array([0,0])
+        dkidt = np.array([0,0])
         for g in range(len(geo_layers)):
             x = geo_layers[g]
             
             if geo_scatter_sigma[g]: # Scatter layer
+                x_s[i_s] = x
+                
                 ai = np.zeros([len(start_params), len(start_params)])
                 ai[2+i_s, 2+i_s] = 1 / geo_scatter_sigma[g]**2
                 
@@ -180,6 +183,8 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.05):
                 theta_sum += updated_params[2+i_s]
                 yn_shift -= x * df_dk(k0, theta_sum)
                 
+                dkidt[i_s] = df_dt(k0,theta_sum)
+                
                 i_s += 1
             else: # Detector layer
                 Vi = cov_meas[g]
@@ -187,22 +192,23 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.05):
                 chi2sum += c2u.chi2_1D(Vi, ri)
     # missing: y1 terms
                 dydy0 = 1
-                dydk0 = x * df_dk(k0, theta_sum) #+ yn_shift
-                dydt1 = x * df_dt(k0, theta_sum) if i_s > 0 else 0
-                dydt2 = x * df_dt(k0, theta_sum) if i_s > 1 else 0
-                
-                
-                
-                # print(c1)
+                dydk0 = x * df_dk(k0, theta_sum) + yn_shift
+
+                if i_s == 0:
+                    dydt1 = 0
+                    dydt2 = 0
+                elif i_s == 1:
+                    dydt1 = (x - x_s[0]) * dkidt[0]
+                    dydt2 = 0
+                elif i_s == 2:
+                    dydt1 = (x - x_s[1]) * dkidt[1] + (x_s[1] - x_s[0]) * dkidt[0] 
+                    dydt2 = (x - x_s[1]) * dkidt[1]
+                else:
+                    print(f"i_s = {i_s} should not happen")
+                print(dydt1)
                 abi_vec = np.array([[dydy0, dydk0, dydt1, dydt2]])
                 ai = 1 / Vi * np.matmul(abi_vec.T,abi_vec)
                 bi = ri / Vi * abi_vec[0]
-                # ai = 1 / Vi * np.array([
-                #     [1, c1,      0, 0],
-                #     [c1, c1 ** 2, 0, 0],
-                #     [0, 0,      0, 0],
-                #     [0, 0,      0, 0],])
-                # bi = ri / Vi * np.array([1, c1, 0, 0])
     
                 a += ai
                 b += bi
