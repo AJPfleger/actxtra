@@ -74,3 +74,14 @@ def plot_chi2_distribution(chi2sum, title):
     plt.plot(x, p, "k")
     plt.title(f"{title}: k = {df:.3f}, loc = {loc:.3f}, scale = {scale:.3f}")
     plt.show()
+
+
+def map_angle_to_right_half(beta, offset=0):
+    while not (-np.pi/2 < beta + offset < np.pi/2):
+        # print("angleadjustment")
+        if beta + offset < 0:
+            beta += np.pi
+        else:
+            beta -= np.pi
+    
+    return beta
