@@ -11,6 +11,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+
 # import ROOT
 
 import chi2_utilities as c2u
@@ -20,12 +21,14 @@ import chi2_utilities as c2u
 #     return y0 + k0 * x
 
 
-def straight_line_propagator(params, x_vec): # [y, phi]
-    return np.ones_like(x_vec) * params[0] + x_vec * np.ones_like(x_vec) * np.tan(params[1])
+def straight_line_propagator(params, x_vec):  # [y, phi]
+    return np.ones_like(x_vec) * params[0] + x_vec * np.ones_like(x_vec) * np.tan(
+        params[1]
+    )
 
 
 def straight_line_propagator_stepwise(params, geo_pos, is_scatter):
-    assert(len(geo_pos) == len(is_scatter))
+    assert len(geo_pos) == len(is_scatter)
 
     current_x_y_phi = [0, params[0], params[1]]
     new_x_y_phi = [0, params[0], params[1]]
@@ -33,14 +36,16 @@ def straight_line_propagator_stepwise(params, geo_pos, is_scatter):
     scatter_params = params[2:]
 
     y_vec = np.zeros_like(geo_pos)
-    i_s = 0 # to count through the scattering surfaces
+    i_s = 0  # to count through the scattering surfaces
     for g in range(len(geo_pos)):
         # make hit
         new_x_y_phi = current_x_y_phi.copy()
         new_x_y_phi[0] = geo_pos[g]
 
         dx = new_x_y_phi[0] - current_x_y_phi[0]
-        new_x_y_phi[1] = current_x_y_phi[1] + np.tan(current_x_y_phi[2]) * dx # add straightlinepropagator here?
+        new_x_y_phi[1] = (
+            current_x_y_phi[1] + np.tan(current_x_y_phi[2]) * dx
+        )  # add straightlinepropagator here?
 
         if is_scatter[g]:
             new_x_y_phi[2] = current_x_y_phi[2] + scatter_params[i_s]
@@ -60,22 +65,22 @@ def scatter(sigma):
 
 # def df_dphi(k0, phi_sum):
 #     tan = np.tan(theta_sum)
-    
+
 #     numerator = 1 + tan ** 2
 #     denominator = (1 - k0 * tan) **2
-    
+
 #     # (1 + np.tan(theta_sum) ** 2) / (1 - k0 * np.tan(theta_sum)) + yn_shift
-    
+
 #     return numerator / denominator
 
 
 # def df_dt(k0, theta_sum):
 #     tan = np.tan(theta_sum)
 #     cos = np.cos(theta_sum)
-    
+
 #     numerator = 1 + k0 ** 2
 #     denominator = (cos * (1 - k0 * tan)) ** 2
-    
+
 #     return numerator / denominator
 
 
@@ -85,19 +90,21 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.0316):
     n_update = 250
 
     # Parameter
-    start_params = np.array([0., 0., 0.])  # [y, k, theta1]
+    start_params = np.array([0.0, 0.0, 0.0])  # [y, k, theta1]
     # start_params = np.array([12.345, 1, 0.0, 0.0])  # [y, k, theta1, theta2]
     delta_params = np.zeros_like(start_params)
 
     # Geometry
-    geo_layers = np.array([2, 3, 5, 5.5, 5.7, 6.5, 7, 10, 12, 14, 14.01, 17, 19, 20,21,22,23,24,25])
+    geo_layers = np.array(
+        [2, 3, 5, 5.5, 5.7, 6.5, 7, 10, 12, 14, 14.01, 17, 19, 20, 21, 22, 23, 24, 25]
+    )
     # geo_layers = np.random.uniform(1, 12, layers)
     # geo_layers.sort()
     cov_meas = np.ones_like(geo_layers) * cov
     geo_scatter_sigma = np.zeros_like(geo_layers)
     geo_scatter_sigma[[10]] = scatter_sigma_rad
     # geo_scatter_sigma[[5, 9]] = scatter_sigma_rad
-    
+
     # detector_layers = geo_layers[geo_scatter_sigma == 0]
     # scatter_layers = geo_layers[geo_scatter_sigma != 0]
     # print(scatter_layers)
@@ -113,7 +120,13 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.0316):
 
     true_params = np.append(true_params, scatter_params)
     # true_params = [np.random.uniform(-9,9), np.random.uniform(-0.9,0.9)]
-    measurments_all, measurments_raw = c2u.generate_hits_scatter(geo_layers, geo_scatter_sigma, true_params, straight_line_propagator_stepwise, cov_meas)
+    measurments_all, measurments_raw = c2u.generate_hits_scatter(
+        geo_layers,
+        geo_scatter_sigma,
+        true_params,
+        straight_line_propagator_stepwise,
+        cov_meas,
+    )
     # measurments = measurments_all[geo_scatter_sigma == 0]
     # measurments_all = measurments_raw
     updated_params = start_params
@@ -139,41 +152,39 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.0316):
         theta = updated_params[2]
         cosphi2 = np.cos(phi) ** 2
         cosphitheta2 = np.cos(phi + theta) ** 2
-        
-        
+
         # tant1 = np.tan(t1)
-        x_s = np.array([0,0])
+        x_s = np.array([0, 0])
         # dkidt = np.array([0,0])
         for g in range(len(geo_layers)):
             x = geo_layers[g]
             # print(f"x_s = {x_s}")
-            
-            if geo_scatter_sigma[g]: # Scatter layer
+
+            if geo_scatter_sigma[g]:  # Scatter layer
                 x_s[i_s] = x
-                
+
                 ai = np.zeros([len(start_params), len(start_params)])
-                ai[2+i_s, 2+i_s] = 1 / geo_scatter_sigma[g]**2
-                
+                ai[2 + i_s, 2 + i_s] = 1 / geo_scatter_sigma[g] ** 2
+
                 bi = np.zeros_like(start_params)
-                bi[2+i_s] = updated_params[2+i_s] / geo_scatter_sigma[g] ** 2
-                
+                bi[2 + i_s] = updated_params[2 + i_s] / geo_scatter_sigma[g] ** 2
+
                 a += ai
                 b += bi
-                
+
                 # yn_shift += x * df_dk(k0, theta_sum)
                 # theta_sum += updated_params[2+i_s]
                 # yn_shift -= x * df_dk(k0, theta_sum)
-                
+
                 # dkidt[i_s] = df_dt(k0,theta_sum)
-                
-                chi2sum += updated_params[2+i_s] ** 2 / geo_scatter_sigma[g] ** 2
-                
+
+                chi2sum += updated_params[2 + i_s] ** 2 / geo_scatter_sigma[g] ** 2
+
                 i_s += 1
-            else: # Detector layer
+            else:  # Detector layer
                 Vi = cov_meas[g]
                 ri = measurments_all[g] - predicted_hits[g]
                 chi2sum += c2u.chi2_1D(Vi, ri)
-
 
                 if i_s == 0:
                     dydy0 = 1
@@ -188,9 +199,9 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.0316):
                 # print(dydt1)
                 abi_vec = np.array([[dydy0, dydp0, dydt1]])
                 # abi_vec = np.array([[dydy0, dydk0, dydt1, dydt2]])
-                
-                ai = np.matmul(abi_vec.T,abi_vec)
-                
+
+                ai = np.matmul(abi_vec.T, abi_vec)
+
                 # # Second derivatives
                 # # It seems that the don't change the result. Only the convergence speed changes.
                 # # It seems to be around 20% faster on average, but there is a larger spread in
@@ -209,7 +220,7 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.0316):
                 #     # ai[0,0] -= 0
                 #     # ai[0,1] -= 0
                 #     # ai[1,0] -= 0
-                #     ai[1,1] -= 2 * x_s[0] * np.tan(phi) / cosphi2 * ri + 2 * (x - x_s[0]) * np.tan(phi+theta) / cosphitheta2 * ri 
+                #     ai[1,1] -= 2 * x_s[0] * np.tan(phi) / cosphi2 * ri + 2 * (x - x_s[0]) * np.tan(phi+theta) / cosphitheta2 * ri
                 #     # ai[0,2] -= 0
                 #     # ai[2,0] -= 0
                 #     ai[1,2] -= 2 * (x - x_s[0]) * np.tan(phi+theta) / cosphitheta2 * ri
@@ -217,22 +228,24 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.0316):
                 #     ai[2,2] -= 2 * (x - x_s[0]) * np.tan(phi+theta) / cosphitheta2 * ri
                 # else:
                 #     print(f"i_s = {i_s} should not happen")
-                
+
                 ai /= Vi
                 bi = ri / Vi * abi_vec[0]
-    
+
                 a += ai
                 b += bi
         # print(f"theta_sum:\n{theta_sum}")
         delta_params = np.linalg.solve(a, b.transpose())
-        
+
         if abs(delta_params).sum() < 1e-4:
             # print(f"\nmax updates = {n}")
             break
-        
+
     updated_params[1] = c2u.map_angle_to_right_half(updated_params[1], 0)
-    updated_params[2] = c2u.map_angle_to_right_half(updated_params[2], updated_params[1])
-    
+    updated_params[2] = c2u.map_angle_to_right_half(
+        updated_params[2], updated_params[1]
+    )
+
     updated_cov = np.linalg.inv(a)
     params_res = updated_params - true_params
     y_res, k_res, theta1 = params_res
@@ -240,14 +253,14 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.0316):
     y_pull = y_res / np.sqrt(updated_cov[0][0])
     k_pull = k_res / np.sqrt(updated_cov[1][1])
     params_pulls = np.zeros_like(params_res)
-    
+
     for p in range(len(params_res)):
         params_pulls[p] = params_res[p] / np.sqrt(updated_cov[p][p])
 
     # if params_pulls[2] > 40:
     #     print(f"found\n{a}\n")
 
-    if plot_all or  params_res[2] < -1:#params_pulls[2] > 10 or n > 90 or
+    if plot_all or params_res[2] < -1:  # params_pulls[2] > 10 or n > 90 or
         print(f"\nmax updates = {n}")
         print(f"updated_params: {updated_params}")
         print(f"true_params: {true_params}")
@@ -258,7 +271,7 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.0316):
         print(f"pulls: {y_pull}, {k_pull}")
         print(params_pulls)
         print("\n")
-        
+
         # max_horizontal = max(geo_layers) + 1
         delta_measurments = abs(max(measurments_all) - min(measurments_all))
         min_vertical = min(measurments_all) - 0.3 * delta_measurments
@@ -277,22 +290,33 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.0316):
                 [min_vertical, max_vertical],
                 line_style_surface,
             )
-        
+
         ax.plot(geo_layers, measurments_all, "gx")
 
         # Trajectoris
         # c2u.add_traj_to_plot(ax, start_params, max_horizontal, straight_line_propagator, "r", "Start Trajectory", "-")
         # c2u.add_traj_to_plot(ax, updated_params, max_horizontal, straight_line_propagator, "b", "Final Trajectory", "-")
-        ax.plot(np.append(0, geo_layers), np.append(updated_params[0], predicted_hits), "b-", label="Unsmeared True Trajectory")
-        ax.plot(np.append(0, geo_layers), np.append(true_params[0], measurments_raw), "k-", label="Unsmeared True Trajectory")
+        ax.plot(
+            np.append(0, geo_layers),
+            np.append(updated_params[0], predicted_hits),
+            "b-",
+            label="Unsmeared True Trajectory",
+        )
+        ax.plot(
+            np.append(0, geo_layers),
+            np.append(true_params[0], measurments_raw),
+            "k-",
+            label="Unsmeared True Trajectory",
+        )
 
         ax.set(xlabel="x", ylabel="y", title="2D-Fit [y,k]")
         ax.legend()
 
-        #fig.savefig("toydetector-scattering-straight-fit.pdf")
+        # fig.savefig("toydetector-scattering-straight-fit.pdf")
         plt.show()
         print(f"delta_params = {delta_params}")
-    return params_res, params_pulls, n#chi2sum
+    return params_res, params_pulls, n  # chi2sum
+
 
 np.random.seed(10)
 draws = 10000
@@ -325,7 +349,7 @@ for d in range(draws):
     t1_res.append(p_res[2])
     # t2_res.append(p_res[3])
     chi2sum.append(c2s)
-    
+
 
 c2u.plot_pull_distribution(y_res, f"y_res ({layers} hits)")
 c2u.plot_pull_distribution(k_res, f"phi_res({layers} hits)")
@@ -342,10 +366,9 @@ c2u.plot_chi2_distribution(chi2sum, f"$\chi^2$ ([y,k], {layers} hits)")
 # plt.ylim(-0.5, 0.2)
 
 
-
 c2u.plot_pull_distribution(chi2sum, f"y-phi-1S without second derivatives (18 hits)")
 
-plt.plot(chi2sum,".")
+plt.plot(chi2sum, ".")
 plt.ylim(0, 180)
 
 # from matplotlib.patches import Ellipse

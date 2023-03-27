@@ -20,8 +20,10 @@ def generate_hits(geometry, true_params, propagator, cov=0.1, smearing=True):
     return measurments, cov_meas, measurments_raw
 
 
-def generate_hits_scatter(geometry, geo_scatter_sigma, true_params, propagator, cov=0.1):
-    
+def generate_hits_scatter(
+    geometry, geo_scatter_sigma, true_params, propagator, cov=0.1
+):
+
     measurments_raw = propagator(true_params, geometry, geo_scatter_sigma)
     measurments_smeared = np.random.normal(measurments_raw, np.sqrt(cov))
 
@@ -35,12 +37,7 @@ def chi2_1D(V, r):
 def add_traj_to_plot(
     ax, params, maxHorizontal, propagator, color="b", label_text="", style="-"
 ):
-    traj = np.array(
-        [
-            [0, maxHorizontal],
-            propagator(params, [0, maxHorizontal]),
-        ]
-    )
+    traj = np.array([[0, maxHorizontal], propagator(params, [0, maxHorizontal]),])
     try:
         ax.plot(0, params[0], "x" + color)
     except:
@@ -77,11 +74,11 @@ def plot_chi2_distribution(chi2sum, title):
 
 
 def map_angle_to_right_half(beta, offset=0):
-    while not (-np.pi/2 < beta + offset < np.pi/2):
+    while not (-np.pi / 2 < beta + offset < np.pi / 2):
         # print("angleadjustment")
         if beta + offset < 0:
             beta += np.pi
         else:
             beta -= np.pi
-    
+
     return beta

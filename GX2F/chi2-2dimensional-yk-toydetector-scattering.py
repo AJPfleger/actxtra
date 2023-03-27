@@ -11,6 +11,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+
 # import ROOT
 
 import chi2_utilities as c2u
@@ -25,16 +26,17 @@ def straight_line_propagator(params, x_vec):
 
     return y_vec
 
+
 # def straight_line_propagator_stepwise(start_params, geo_pos, geo_scatter_sigma):
-    
+
 #     assert(len(geo_pos) == len(geo_scatter_sigma))
-    
+
 #     current_x_y_k = [0, start_params[0], start_params[1]]
 #     new_x_y_k = [0, start_params[0], start_params[1]]
-    
+
 #     y_vec = np.zeros_like(geo_pos)
 #     theta_vec = np.zeros_like(geo_pos) # Saves the theta at scattering surfaces
-    
+
 #     for g in range(len(geo_pos)):
 #         # make hit
 #         new_x_y_k = current_x_y_k.copy()
@@ -42,20 +44,21 @@ def straight_line_propagator(params, x_vec):
 #         dx = new_x_y_k[0] - current_x_y_k[0]
 #         new_x_y_k[1] = current_x_y_k[1] + dx*current_x_y_k[2]
 #         y_vec[g] = new_x_y_k[1]
-        
+
 #         if geo_scatter_sigma[g] != 0: # scatter
 #             theta_vec[g] = np.arctan(current_x_y_k[2])
 #             theta_new = np.random.normal(theta_vec[g], geo_scatter_sigma[g])
 #             new_x_y_k[2] = np.tan(theta_new)
-        
+
 #         current_x_y_k = new_x_y_k.copy()
-    
+
 #     # y_vec = np.ones_like(x_vec) * params[0] + x_vec * np.ones_like(x_vec) * params[1]
 
 #     return y_vec, theta_vec
 
+
 def straight_line_propagator_stepwise(params, geo_pos, is_scatter):
-    assert(len(geo_pos) == len(is_scatter))
+    assert len(geo_pos) == len(is_scatter)
 
     current_x_y_k = [0, params[0], params[1]]
     new_x_y_k = [0, params[0], params[1]]
@@ -63,7 +66,7 @@ def straight_line_propagator_stepwise(params, geo_pos, is_scatter):
     scatter_params = params[2:]
 
     y_vec = np.zeros_like(geo_pos)
-    i_s = 0 # to count through the scattering surfaces
+    i_s = 0  # to count through the scattering surfaces
     for g in range(len(geo_pos)):
         # make hit
         new_x_y_k = current_x_y_k.copy()
@@ -143,16 +146,24 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.05):
 
     true_params = np.append(true_params, scatter_params)
     # true_params = [np.random.uniform(-9,9), np.random.uniform(-0.9,0.9)]
-    measurments_all, measurments_raw = c2u.generate_hits_scatter(geo_layers, geo_scatter_sigma, true_params, straight_line_propagator_stepwise, cov_meas)
+    measurments_all, measurments_raw = c2u.generate_hits_scatter(
+        geo_layers,
+        geo_scatter_sigma,
+        true_params,
+        straight_line_propagator_stepwise,
+        cov_meas,
+    )
     # measurments = measurments_all[geo_scatter_sigma == 0]
-    
+    # measurments_all = measurments_raw
     updated_params = start_params
 
     ## Iterating and updating parameters
     for _ in range(n_update):
 
         updated_params = updated_params + delta_params
-        predicted_hits = straight_line_propagator_stepwise(updated_params, geo_layers, geo_scatter_sigma)
+        predicted_hits = straight_line_propagator_stepwise(
+            updated_params, geo_layers, geo_scatter_sigma
+        )
 
         # Iterate over surfaces
         a = np.zeros([len(start_params), len(start_params)])
@@ -234,7 +245,7 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.05):
         print(f"pulls: {y_pull}, {k_pull}")
         print(params_pulls)
         print("\n")
-        
+
         # max_horizontal = max(geo_layers) + 1
         delta_measurments = abs(max(measurments_all) - min(measurments_all))
         min_vertical = min(measurments_all) - 0.3 * delta_measurments

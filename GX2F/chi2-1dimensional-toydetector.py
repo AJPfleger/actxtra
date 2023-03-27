@@ -73,7 +73,7 @@ def get_pulls(plot_all, layers=12, cov=0.1):
     y_res = updated_params - true_params
     y_cov = updated_cov
     y_pull = (updated_params - true_params) / np.sqrt(updated_cov)
-    
+
     if plot_all:
         print(f"updated_params: {updated_params}")
         print(f"true_params: {true_params}")
@@ -83,7 +83,7 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         print(f"updated_cov:\n{updated_cov}")
         print(f"pulls: {y_pull}")
         print("\n")
-        
+
         max_horizontal = max(detector_layers) + 1
         max_vertical = 40
 
@@ -99,9 +99,33 @@ def get_pulls(plot_all, layers=12, cov=0.1):
             ax.plot(detector_layers[d], measurments[d], "gx")
 
         # Trajectoris
-        c2u.add_traj_to_plot(ax, start_params, max_horizontal, straight_line_propagator, "r", "Start Trajectory", "-")
-        c2u.add_traj_to_plot(ax, updated_params, max_horizontal, straight_line_propagator, "b", "Final Trajectory", "-")
-        c2u.add_traj_to_plot(ax, true_params, max_horizontal, straight_line_propagator, "k", "Unsmeared True Trajectory", "-.")
+        c2u.add_traj_to_plot(
+            ax,
+            start_params,
+            max_horizontal,
+            straight_line_propagator,
+            "r",
+            "Start Trajectory",
+            "-",
+        )
+        c2u.add_traj_to_plot(
+            ax,
+            updated_params,
+            max_horizontal,
+            straight_line_propagator,
+            "b",
+            "Final Trajectory",
+            "-",
+        )
+        c2u.add_traj_to_plot(
+            ax,
+            true_params,
+            max_horizontal,
+            straight_line_propagator,
+            "k",
+            "Unsmeared True Trajectory",
+            "-.",
+        )
 
         ax.set(xlabel="x", ylabel="y", title="2D-Fit [y,k]")
         ax.legend()
@@ -112,13 +136,13 @@ def get_pulls(plot_all, layers=12, cov=0.1):
     ## root fit
     x_root = np.array(detector_layers)
     y_root = np.array(measurments)
-    ex_root = x_root*0
+    ex_root = x_root * 0
     ey_root = ex_root + np.sqrt(cov)
     g_root = ROOT.TGraphErrors(len(x_root), x_root, y_root, ex_root, ey_root)
     f_root = ROOT.TF1("f_root", "[0]")
-    t_root = g_root.Fit(f_root,"S")
+    t_root = g_root.Fit(f_root, "S")
 
-    y_res_root = t_root.Parameter(0)-true_params
+    y_res_root = t_root.Parameter(0) - true_params
     y_std_root = t_root.Error(0)
     y_pull_root = y_res_root / y_std_root
 
@@ -142,7 +166,7 @@ for l in layers:
     y_pul_root = []
     chi2sum = []
     for d in range(draws):
-        print("") # set this line when using spyder, to make root work correctly
+        print("")  # set this line when using spyder, to make root work correctly
         y_p, y_r, y_c, y_p_root, c2s = get_pulls(d < 0, l, 0.1)
         y_pul.append(y_p)
         y_res.append(abs(y_r))

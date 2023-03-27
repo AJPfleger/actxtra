@@ -76,7 +76,7 @@ def get_pulls(plot_all, layers=12, cov=0.1):
     y_pull = y_res / np.sqrt(updated_cov[0][0])
     k_pull = k_res / np.sqrt(updated_cov[1][1])
 
-    if plot_all:        
+    if plot_all:
         print(f"updated_params: {updated_params}")
         print(f"true_params: {true_params}")
         print(f"diff: {updated_params - true_params}")
@@ -85,10 +85,10 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         print(f"updated_cov:\n{updated_cov}")
         print(f"pulls: {y_pull}, {k_pull}")
         print("\n")
-        
+
         max_horizontal = max(detector_layers) + 1
-        min_v = min(min(measurments),start_params[0])
-        max_v = max(max(measurments),start_params[0])
+        min_v = min(min(measurments), start_params[0])
+        max_v = max(max(measurments), start_params[0])
         delta_v = max_v - min_v
         min_vertical = min_v - 0.3 * delta_v
         max_vertical = max_v + 0.3 * delta_v
@@ -105,9 +105,33 @@ def get_pulls(plot_all, layers=12, cov=0.1):
             ax.plot(detector_layers[d], measurments[d], "gx")
 
         # Trajectoris
-        c2u.add_traj_to_plot(ax, start_params, max_horizontal, straight_line_propagator, "r", "Start Trajectory", "-")
-        c2u.add_traj_to_plot(ax, updated_params, max_horizontal, straight_line_propagator, "b", "Final Trajectory", "-")
-        c2u.add_traj_to_plot(ax, true_params, max_horizontal, straight_line_propagator, "k", "Unsmeared True Trajectory", "-.")
+        c2u.add_traj_to_plot(
+            ax,
+            start_params,
+            max_horizontal,
+            straight_line_propagator,
+            "r",
+            "Start Trajectory",
+            "-",
+        )
+        c2u.add_traj_to_plot(
+            ax,
+            updated_params,
+            max_horizontal,
+            straight_line_propagator,
+            "b",
+            "Final Trajectory",
+            "-",
+        )
+        c2u.add_traj_to_plot(
+            ax,
+            true_params,
+            max_horizontal,
+            straight_line_propagator,
+            "k",
+            "Unsmeared True Trajectory",
+            "-.",
+        )
 
         ax.set(xlabel="x", ylabel="y", title="2D-Fit [y,k]")
         ax.legend()
@@ -118,17 +142,17 @@ def get_pulls(plot_all, layers=12, cov=0.1):
     ## root fit
     x_root = np.array(detector_layers)
     y_root = np.array(measurments)
-    ex_root = x_root*0
+    ex_root = x_root * 0
     ey_root = ex_root + np.sqrt(cov)
     g_root = ROOT.TGraphErrors(len(x_root), x_root, y_root, ex_root, ey_root)
     f_root = ROOT.TF1("f_root", "[0] + [1]*x")
-    t_root = g_root.Fit(f_root,"S")
+    t_root = g_root.Fit(f_root, "S")
 
-    y_res_root = t_root.Parameter(0)-true_params[0]
+    y_res_root = t_root.Parameter(0) - true_params[0]
     y_std_root = t_root.Error(0)
     y_pull_root = y_res_root / y_std_root
 
-    k_res_root = t_root.Parameter(1)-true_params[1]
+    k_res_root = t_root.Parameter(1) - true_params[1]
     k_std_root = t_root.Error(1)
     k_pull_root = k_res_root / k_std_root
 
@@ -146,7 +170,7 @@ y_pul_root = []
 k_pul_root = []
 chi2sum = []
 for d in range(draws):
-    print("") # set this line when using spyder, to make root work correctly
+    print("")  # set this line when using spyder, to make root work correctly
     y_p, k_p, y_res, k_res, y_p_root, k_p_root, c2s = get_pulls(d < 5, layers)
     y_pul.append(y_p)
     k_pul.append(k_p)
@@ -175,10 +199,13 @@ n_scatter_points = 1000
 ax.scatter(y_res_vec[:n_scatter_points], k_res_vec[:n_scatter_points])
 
 for j in range(1, 4):
-    ell = Ellipse(xy=(np.mean(y_res_vec), np.mean(k_res_vec)),
-                  width=lambda_[0]*j*2, height=lambda_[1]*j*2,
-                  angle=np.rad2deg(np.arctan2(*v[:,0][::-1])))
-    ell.set_facecolor('none')
+    ell = Ellipse(
+        xy=(np.mean(y_res_vec), np.mean(k_res_vec)),
+        width=lambda_[0] * j * 2,
+        height=lambda_[1] * j * 2,
+        angle=np.rad2deg(np.arctan2(*v[:, 0][::-1])),
+    )
+    ell.set_facecolor("none")
     ell.set_edgecolor("red")
     ax.add_artist(ell)
 
