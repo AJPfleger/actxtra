@@ -63,7 +63,7 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.05):
     scatter_params = np.array([], dtype=float)
     for s_sig in geo_scatter_sigma:
         if s_sig:
-            # theta = scatter(s_sig)
+            # theta = c2u.scatter(s_sig)
             theta = 0.1
             scatter_params = np.append(scatter_params, theta)
 

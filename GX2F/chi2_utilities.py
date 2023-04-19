@@ -20,6 +20,10 @@ def generate_hits(geometry, true_params, propagator, cov=0.1, smearing=True):
     return measurments, cov_meas, measurments_raw
 
 
+def scatter(sigma):
+    return np.random.normal(0, sigma)
+
+
 def generate_hits_scatter(
     geometry, geo_scatter_sigma, true_params, propagator, cov=0.1
 ):
