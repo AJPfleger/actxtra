@@ -170,12 +170,27 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.0316):
 
                 a += ai
                 b += bi
+
         # print(f"theta_sum:\n{theta_sum}")
         delta_params = np.linalg.solve(a, b.transpose())
 
         if abs(delta_params).sum() < 1e-4:
             # print(f"\nmax updates = {n}")
+            print(f"\n*** delta break *** max updates = {n}")
             break
+
+        if plot_all:
+            c2u.plot_current_state(updated_params, true_params, a, np.linalg.inv(a),
+                            measurments_all, geo_layers,
+                                   geo_scatter_sigma, predicted_hits, measurments_raw, n)
+        
+        if chi2sum > chi2old:
+            # print(f"\n*** chi2 break *** max updates = {n}")
+            break
+        
+        chi2old = chi2sum
+        
+        
 
     updated_params[1] = c2u.map_angle_to_right_half(updated_params[1], 0)
     updated_params[2] = c2u.map_angle_to_right_half(
@@ -186,10 +201,8 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.0316):
     params_res = updated_params - true_params
     y_res, k_res, theta1 = params_res
     # y_res, k_res, theta1, theta2 = params_res
-    y_pull = y_res / np.sqrt(updated_cov[0][0])
-    k_pull = k_res / np.sqrt(updated_cov[1][1])
-    params_pulls = np.zeros_like(params_res)
 
+    params_pulls = np.zeros_like(params_res)
     for p in range(len(params_res)):
         params_pulls[p] = params_res[p] / np.sqrt(updated_cov[p][p])
 
@@ -197,59 +210,9 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.0316):
     #     print(f"found\n{a}\n")
 
     if plot_all or params_res[2] < -1:  # params_pulls[2] > 10 or n > 90 or
-        print(f"\nmax updates = {n}")
-        print(f"updated_params: {updated_params}")
-        print(f"true_params: {true_params}")
-        print(f"diff: {updated_params - true_params}")
-        print(f"a:\n{a}")
-        print(f"cov_meas: {cov_meas}")
-        print(f"updated_cov:\n{updated_cov}")
-        print(f"pulls: {y_pull}, {k_pull}")
-        print(params_pulls)
-        print("\n")
-
-        # max_horizontal = max(geo_layers) + 1
-        delta_measurments = abs(max(measurments_all) - min(measurments_all))
-        min_vertical = min(measurments_all) - 0.3 * delta_measurments
-        max_vertical = max(measurments_all) + 0.3 * delta_measurments
-
-        fig, ax = plt.subplots()
-
-        # Detector
-        for d in range(len(geo_layers)):
-            if geo_scatter_sigma[d] == 0:
-                line_style_surface = "g-"
-            else:
-                line_style_surface = "r:"
-            ax.plot(
-                [geo_layers[d], geo_layers[d]],
-                [min_vertical, max_vertical],
-                line_style_surface,
-            )
-
-        ax.plot(geo_layers, measurments_all, "gx")
-
-        # Trajectoris
-        # c2u.add_traj_to_plot(ax, start_params, max_horizontal, straight_line_propagator, "r", "Start Trajectory", "-")
-        # c2u.add_traj_to_plot(ax, updated_params, max_horizontal, straight_line_propagator, "b", "Final Trajectory", "-")
-        ax.plot(
-            np.append(0, geo_layers),
-            np.append(updated_params[0], predicted_hits),
-            "b-",
-            label="Unsmeared True Trajectory",
-        )
-        ax.plot(
-            np.append(0, geo_layers),
-            np.append(true_params[0], measurments_raw),
-            "k-",
-            label="Unsmeared True Trajectory",
-        )
-
-        ax.set(xlabel="x", ylabel="y", title="2D-Fit [y,k]")
-        ax.legend()
-
-        # fig.savefig("toydetector-scattering-straight-fit.pdf")
-        plt.show()
+        c2u.plot_current_state(updated_params, true_params, a, updated_cov,
+                               measurments_all, geo_layers,
+                               geo_scatter_sigma, predicted_hits, measurments_raw, n, params_pulls)
         print(f"delta_params = {delta_params}")
     return params_res, params_pulls, n  # chi2sum
 
