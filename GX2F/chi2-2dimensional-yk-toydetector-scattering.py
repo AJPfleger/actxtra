@@ -11,6 +11,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import logging
 
 import chi2_utilities as c2u
 import propagators
@@ -206,6 +207,7 @@ def get_pulls(plot_all, layers=12, cov=0.1, scatter_sigma_rad=0.05):
 
 
 draws = 1
+logging.getLogger().setLevel(logging.INFO)
 layers = 12
 bins = int(np.sqrt(draws))
 y_pul = []

@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 from scipy.stats import chi2
+import logging
 
 
 def generate_hits(geometry, true_params, propagator, cov=0.1, smearing=True):
@@ -79,7 +80,7 @@ def plot_chi2_distribution(chi2sum, title):
 
 def map_angle_to_right_half(beta, offset=0):
     while not (-np.pi / 2 < beta + offset < np.pi / 2):
-        # print("angleadjustment")
+        logging.info("angle adjustment needs to be done")
         if beta + offset < 0:
             beta += np.pi
         else:
