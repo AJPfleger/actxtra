@@ -1,6 +1,10 @@
 import numpy as np
 
 
+def straight_line_propagator_1D(params, x_vec):
+    return np.ones_like(x_vec) * params
+
+
 def straight_line_propagator_2D_yphi(params, x_vec):
     return straight_line_propagator_2D(params, x_vec, "phi")
 

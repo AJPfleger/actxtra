@@ -9,18 +9,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
-import ROOT
 
 import chi2_utilities as c2u
-
-
-def fit_func(x, y0):
-    return y0
-
-
-def straight_line_propagator(params, x_vec):
-    y_vec = np.ones_like(x_vec) * params
-    return y_vec
+import propagators
 
 
 def get_pulls(plot_all, layers=12, cov=0.1):
@@ -40,7 +31,7 @@ def get_pulls(plot_all, layers=12, cov=0.1):
     true_params = 12.345
     # true_params = [np.random.uniform(-9,9)]
     measurments, cov_meas, measurments_raw = c2u.generate_hits(
-        detector_layers, true_params, straight_line_propagator, cov
+        detector_layers, true_params, propagators.straight_line_propagator_1D, cov
     )
 
     updated_params = start_params
@@ -55,9 +46,11 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         b = 0
         chi2sum = 0
         for d in range(len(detector_layers)):
-            h = detector_layers[d]
+            x = detector_layers[d]
             Vi = cov_meas[d]
-            ri = measurments[d] - straight_line_propagator(updated_params, h)
+            ri = measurments[d] - propagators.straight_line_propagator_1D(
+                updated_params, x
+            )
             chi2sum += c2u.chi2_1D(Vi, ri)
 
             ai = 1 / Vi
@@ -71,8 +64,7 @@ def get_pulls(plot_all, layers=12, cov=0.1):
     updated_cov = 1 / a
 
     y_res = updated_params - true_params
-    y_cov = updated_cov
-    y_pull = (updated_params - true_params) / np.sqrt(updated_cov)
+    y_pull = y_res / np.sqrt(updated_cov)
 
     if plot_all:
         print(f"updated_params: {updated_params}")
@@ -98,12 +90,12 @@ def get_pulls(plot_all, layers=12, cov=0.1):
             )
             ax.plot(detector_layers[d], measurments[d], "gx")
 
-        # Trajectoris
+        # Trajectories
         c2u.add_traj_to_plot(
             ax,
             start_params,
             max_horizontal,
-            straight_line_propagator,
+            propagators.straight_line_propagator_1D,
             "r",
             "Start Trajectory",
             "-",
@@ -112,7 +104,7 @@ def get_pulls(plot_all, layers=12, cov=0.1):
             ax,
             updated_params,
             max_horizontal,
-            straight_line_propagator,
+            propagators.straight_line_propagator_1D,
             "b",
             "Final Trajectory",
             "-",
@@ -121,7 +113,7 @@ def get_pulls(plot_all, layers=12, cov=0.1):
             ax,
             true_params,
             max_horizontal,
-            straight_line_propagator,
+            propagators.straight_line_propagator_1D,
             "k",
             "Unsmeared True Trajectory",
             "-.",
@@ -134,19 +126,11 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         plt.show()
 
     ## root fit
-    x_root = np.array(detector_layers)
-    y_root = np.array(measurments)
-    ex_root = x_root * 0
-    ey_root = ex_root + np.sqrt(cov)
-    g_root = ROOT.TGraphErrors(len(x_root), x_root, y_root, ex_root, ey_root)
-    f_root = ROOT.TF1("f_root", "[0]")
-    t_root = g_root.Fit(f_root, "S")
+    params_res_root, params_pulls_root = c2u.root_fit(
+        detector_layers, measurments, cov, "[0]", [true_params]
+    )
 
-    y_res_root = t_root.Parameter(0) - true_params
-    y_std_root = t_root.Error(0)
-    y_pull_root = y_res_root / y_std_root
-
-    return y_pull, y_res, y_cov, y_pull_root, chi2sum
+    return y_pull, y_res, updated_cov, params_pulls_root[0], chi2sum
 
 
 layers = [int(i ** 1.5) for i in range(2, 10)]
