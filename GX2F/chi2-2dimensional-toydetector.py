@@ -5,12 +5,13 @@
 # propagation is done by a straight line
 # surfaces are infinitly large parallel planes
 # 2D case
+# params are [y, phi]
 
 import numpy as np
 import matplotlib.pyplot as plt
+import logging
 
 # from scipy.optimize import curve_fit
-import ROOT
 
 import chi2_utilities as c2u
 import propagators
@@ -142,30 +143,14 @@ def get_pulls(plot_all, layers=5, cov=0.1, phi_true=-1):
         plt.show()
 
     ## root fit
-    x_root = np.array(detector_layers)
-    y_root = np.array(measurments)
-    ex_root = x_root * 0
-    ey_root = ex_root + np.sqrt(cov)
-    g_root = ROOT.TGraphErrors(len(x_root), x_root, y_root, ex_root, ey_root)
-    f_root = ROOT.TF1("f_root", "[0] + tan([1])*x")
-    t_root = g_root.Fit(f_root, "S")
-    # print(t_root)
+    params_res_root, params_pulls_root = c2u.root_fit(
+        detector_layers, measurments, cov, "[0] + tan([1])*x", true_params, [1]
+    )
+    y_res_root, phi_res_root = params_res_root
+    y_pull_root, phi_pull_root = params_pulls_root
 
-    y_res_root = t_root.Parameter(0) - true_params[0]
-    y_std_root = t_root.Error(0)
-    y_pull_root = y_res_root / y_std_root
-
-    phi_root = c2u.map_angle_to_right_half(t_root.Parameter(1), 0)
-
-    phi_res_root = phi_root - true_params[1]
-    phi_std_root = t_root.Error(1)
-    phi_pull_root = phi_res_root / phi_std_root
-
-    chi2sum = abs(1 - y_pull / y_pull_root)
-    updated_cov[1][1] = abs(1 - phi_pull / phi_pull_root)
     if abs(y_pull_root - y_pull) > 1e-3:
-        print("----------e-r-r-o-r----------")
-        print(y_pull_root - y_pull)
+        logging.info(f"y_pull-fit differs from TF1 by {y_pull_root - y_pull}")
 
     return (
         y_pull,
@@ -179,7 +164,7 @@ def get_pulls(plot_all, layers=5, cov=0.1, phi_true=-1):
     )
 
 
-draws = 10000
+draws = 1000
 layers = 30
 bins = int(np.sqrt(draws))
 y_pul = []

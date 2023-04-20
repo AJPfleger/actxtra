@@ -5,6 +5,10 @@ def straight_line_propagator_2D_yphi(params, x_vec):
     return straight_line_propagator_2D(params, x_vec, "phi")
 
 
+def straight_line_propagator_2D_yk(params, x_vec):
+    return straight_line_propagator_2D(params, x_vec, "k")
+
+
 def straight_line_propagator_2D(params, x_vec, mode="phi"):
     y0 = np.ones_like(x_vec) * params[0]
 

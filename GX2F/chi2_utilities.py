@@ -166,3 +166,28 @@ def calc_res_pulls(updated_params, true_params, params_cov):
         params_pulls[p] = params_res[p] / np.sqrt(params_cov[p][p])
 
     return params_res, params_pulls
+
+
+def root_fit(detector_layers, measurments, cov, fit_func, true_params, angle_like=[]):
+    import ROOT
+
+    x_root = np.array(detector_layers)
+    y_root = np.array(measurments)
+    ex_root = x_root * 0
+    ey_root = ex_root + np.sqrt(cov)
+    g_root = ROOT.TGraphErrors(len(x_root), x_root, y_root, ex_root, ey_root)
+    f_root = ROOT.TF1("f_root", fit_func)
+    t_root = g_root.Fit(f_root, "S")
+
+    params_res = np.zeros_like(true_params)
+    params_pulls = np.zeros_like(true_params)
+    for p in range(len(true_params)):
+        param_p = (
+            t_root.Parameter(p)
+            if p not in angle_like
+            else map_angle_to_right_half(t_root.Parameter(p), 0)
+        )
+        params_res[p] = param_p - true_params[p]
+        params_pulls[p] = params_res[p] / t_root.Error(p)
+
+    return params_res, params_pulls
