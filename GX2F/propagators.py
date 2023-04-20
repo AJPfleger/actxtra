@@ -1,6 +1,23 @@
 import numpy as np
 
 
+def straight_line_propagator_2D_yphi(params, x_vec):
+    return straight_line_propagator_2D(params, x_vec, "phi")
+
+
+def straight_line_propagator_2D(params, x_vec, mode="phi"):
+    y0 = np.ones_like(x_vec) * params[0]
+
+    if mode == "phi":
+        k0 = np.ones_like(x_vec) * np.tan(params[1])
+    elif mode == "k":
+        k0 = np.ones_like(x_vec) * params[1]
+    else:
+        assert False, f"Unknown mode '{mode}'"
+
+    return y0 + k0 * x_vec
+
+
 def straight_line_propagator_stepwise_2D_scatter_yphi(params, geo_pos, is_scatter):
     return straight_line_propagator_stepwise_2D_scatter(
         params, geo_pos, is_scatter, "phi"

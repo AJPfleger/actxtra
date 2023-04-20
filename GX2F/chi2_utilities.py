@@ -156,3 +156,13 @@ def plot_current_state(
             fig.savefig(plot_filename)
             logging.info(f"Plot saved as {plot_filename}")
         plt.show()
+
+
+def calc_res_pulls(updated_params, true_params, params_cov):
+    params_res = updated_params - true_params
+
+    params_pulls = np.zeros_like(params_res)
+    for p in range(len(params_res)):
+        params_pulls[p] = params_res[p] / np.sqrt(params_cov[p][p])
+
+    return params_res, params_pulls
