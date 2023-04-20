@@ -44,7 +44,7 @@ def straight_line_propagator(params, x_vec):
 def get_pulls(plot_all, layers=5, cov=0.1, phi_true=-1):
 
     ## Initialising
-    n_update = 5
+    n_update = 15
 
     # Parameter
     start_params = np.array([0.0, 0])  # [y, phi]
@@ -87,7 +87,7 @@ def get_pulls(plot_all, layers=5, cov=0.1, phi_true=-1):
             h_cos2 = h / np.cos(updated_params[1]) ** 2
             d2chi_dphi2 = (
                 h_cos2 ** 2
-            )  # - 2 * ri / h_cos2 ** 2 * np.tan(updated_params[1])
+            )  # - 2 * ri / h_cos2 ** 2 * np.tan(updated_params[1]))
             ai = 1 / Vi * np.array([[1, h_cos2], [h_cos2, d2chi_dphi2],])
             bi = ri / Vi * np.array([1, h_cos2])
 
@@ -137,11 +137,35 @@ def get_pulls(plot_all, layers=5, cov=0.1, phi_true=-1):
             ax.plot(detector_layers[d], measurments[d], "gx")
 
         # Trajectoris
-        c2u.add_traj_to_plot(ax, start_params, max_horizontal, straight_line_propagator, "r", "Start Trajectory", "-")
-        c2u.add_traj_to_plot(ax, updated_params, max_horizontal, straight_line_propagator, "b", "Final Trajectory", "-")
-        c2u.add_traj_to_plot(ax, true_params, max_horizontal, straight_line_propagator, "k", "Unsmeared True Trajectory", "-.")
+        c2u.add_traj_to_plot(
+            ax,
+            start_params,
+            max_horizontal,
+            straight_line_propagator,
+            "r",
+            "Start Trajectory",
+            "-",
+        )
+        c2u.add_traj_to_plot(
+            ax,
+            updated_params,
+            max_horizontal,
+            straight_line_propagator,
+            "b",
+            "Final Trajectory",
+            "-",
+        )
+        c2u.add_traj_to_plot(
+            ax,
+            true_params,
+            max_horizontal,
+            straight_line_propagator,
+            "k",
+            "Unsmeared True Trajectory",
+            "-.",
+        )
 
-        ax.set(xlabel="horizontal", ylabel="x", title="2D-Fit [y,k]")
+        ax.set(xlabel="x", ylabel="y", title="2D-Fit [y,k]")
         ax.legend()
 
         # fig.savefig("test.png")
@@ -151,6 +175,7 @@ def get_pulls(plot_all, layers=5, cov=0.1, phi_true=-1):
 
 
 draws = 10000
+layers = 30
 bins = int(np.sqrt(draws))
 y_pulls = []
 phi_pulls = []
