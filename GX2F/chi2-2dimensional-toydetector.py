@@ -11,68 +11,53 @@ import numpy as np
 import matplotlib.pyplot as plt
 import logging
 
-# from scipy.optimize import curve_fit
-
 import chi2_utilities as c2u
 import propagators
+
+
+def ai_bi(ri, Vi, xi, params):
+    x_cos2 = xi / np.cos(params[1]) ** 2
+    d2chi_dphi2 = x_cos2 ** 2
+    # d2chi_dphi2 = x_cos2 ** 2 - 2 * ri / x_cos2 ** 2 * np.tan(params[1])
+
+    ai = 1 / Vi * np.array([[1, x_cos2], [x_cos2, d2chi_dphi2],])
+    bi = ri / Vi * np.array([1, x_cos2])
+
+    return ai, bi
 
 
 def get_pulls(plot_all, layers=5, cov=0.1, phi_true=-1):
 
     ## Initialising
     n_update = 15
-
-    # Parameter
+    true_params = [12.345, phi_true]
+    # true_params = [np.random.uniform(-9,9), np.random.uniform(-0.9,0.9)]
     start_params = np.array([0.0, 0])  # [y, phi]
-    delta_params = np.zeros_like(start_params)
+    start_params = true_params
 
     # Geometry
     # detector_layers = np.array([2, 3, 5, 5.5, 5.7, 6.5, 10, 50, 98, 99, 100])
     detector_layers = np.random.uniform(2, 10, layers)
 
-    # Hits
-    true_params = [12.345, phi_true]
-    # true_params = [np.random.uniform(-9,9), np.random.uniform(-0.9,0.9)]
+    # Generate hits
     measurments, cov_meas, measurments_raw = c2u.generate_hits(
         detector_layers,
         true_params,
         propagators.straight_line_propagator_2D_yphi,
-        0.1,
+        cov,
         True,
     )
-    # proj = np.array([[1,0]]) # projects onto x
-    start_params = true_params
-    updated_params = start_params
 
-    ## Iterating and updating parameters
-    for _ in range(n_update):
-
-        updated_params = updated_params + delta_params
-        updated_params[1] = c2u.map_angle_to_right_half(updated_params[1], 0)
-
-        # Iterate over surfaces
-        a = np.zeros([2, 2])
-        b = np.zeros_like(start_params)
-        chi2sum = 0
-        for d in range(len(detector_layers)):
-            x = detector_layers[d]
-            Vi = cov_meas[d]
-            ri = measurments[d] - propagators.straight_line_propagator_2D_yphi(
-                updated_params, x
-            )
-            chi2sum += c2u.chi2_1D(Vi, ri)
-
-            x_cos2 = x / np.cos(updated_params[1]) ** 2
-            d2chi_dphi2 = (
-                x_cos2 ** 2
-            )  # - 2 * ri / h_cos2 ** 2 * np.tan(updated_params[1]))
-            ai = 1 / Vi * np.array([[1, x_cos2], [x_cos2, d2chi_dphi2],])
-            bi = ri / Vi * np.array([1, x_cos2])
-
-            a += ai
-            b += bi
-
-        delta_params = np.linalg.solve(a, b.transpose())
+    # Fit
+    a, updated_params, chi2sum, updated_cov = c2u.gx2f(
+        start_params,
+        detector_layers,
+        cov_meas,
+        measurments,
+        propagators.straight_line_propagator_2D_yphi,
+        n_update,
+        ai_bi,
+    )
 
     updated_cov = np.linalg.inv(a)
 
@@ -164,7 +149,9 @@ def get_pulls(plot_all, layers=5, cov=0.1, phi_true=-1):
     )
 
 
-draws = 1000
+logging.getLogger().setLevel(logging.INFO)
+np.random.seed(10)
+draws = 100
 layers = 30
 bins = int(np.sqrt(draws))
 y_pul = []
@@ -244,6 +231,7 @@ ax.set(xlabel="y_res", ylabel="phi_res", title="y_res vs. phi_res, 1e4 runs")
 plt.show()
 
 
+# from scipy.optimize import curve_fit
 # # #### vvvv experimental vvvv ####
 # from scipy.stats import norm
 # from scipy.stats import skewnorm

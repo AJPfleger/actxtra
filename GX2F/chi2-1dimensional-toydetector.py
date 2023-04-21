@@ -5,66 +5,59 @@
 # propagation is done by a straight line
 # surfaces are infinitly large parallel planes
 # 1D case with just a single degree of freedom
+# params are [y]
 
 import numpy as np
 import matplotlib.pyplot as plt
+import logging
 from scipy.stats import norm
 
 import chi2_utilities as c2u
 import propagators
 
 
+def ai_bi(ri, Vi, xi, params):
+
+    ai = 1 / Vi * np.array([[1]])
+    bi = ri / Vi * np.array([1])
+
+    return ai, bi
+
+
 def get_pulls(plot_all, layers=12, cov=0.1):
 
     ## Initialising
     n_update = 2
-
-    # Parameter
-    start_params = 0.0  # [y0]
-    delta_params = 0
+    true_params = [12.345]
+    # true_params = [np.random.uniform(-9,9)]
+    start_params = [0.0]  # [y0]
 
     # Geometry
     # detector_layers = np.array([2, 3, 5, 5.5, 5.7, 6.5,10,10.1,50,98,99,100])
     detector_layers = np.random.uniform(1, 100, layers)
 
-    # Hits
-    true_params = 12.345
-    # true_params = [np.random.uniform(-9,9)]
+    # Generate hits
     measurments, cov_meas, measurments_raw = c2u.generate_hits(
         detector_layers, true_params, propagators.straight_line_propagator_1D, cov
     )
 
-    updated_params = start_params
+    # Fit
+    a, updated_params, chi2sum, updated_cov = c2u.gx2f(
+        start_params,
+        detector_layers,
+        cov_meas,
+        measurments,
+        propagators.straight_line_propagator_1D,
+        n_update,
+        ai_bi,
+    )
 
-    ## Iterating and updating parameters
-    for _ in range(n_update):
+    params_res, params_pulls = c2u.calc_res_pulls(
+        updated_params, true_params, updated_cov
+    )
 
-        updated_params = updated_params + delta_params
-
-        # Iterate over surfaces
-        a = 0
-        b = 0
-        chi2sum = 0
-        for d in range(len(detector_layers)):
-            x = detector_layers[d]
-            Vi = cov_meas[d]
-            ri = measurments[d] - propagators.straight_line_propagator_1D(
-                updated_params, x
-            )
-            chi2sum += c2u.chi2_1D(Vi, ri)
-
-            ai = 1 / Vi
-            bi = ri / Vi
-
-            a += ai
-            b += bi
-
-        delta_params = b / a
-
-    updated_cov = 1 / a
-
-    y_res = updated_params - true_params
-    y_pull = y_res / np.sqrt(updated_cov)
+    y_res = params_res[0]
+    y_pull = params_pulls[0]
 
     if plot_all:
         print(f"updated_params: {updated_params}")
@@ -127,12 +120,14 @@ def get_pulls(plot_all, layers=12, cov=0.1):
 
     ## root fit
     params_res_root, params_pulls_root = c2u.root_fit(
-        detector_layers, measurments, cov, "[0]", [true_params]
+        detector_layers, measurments, cov, "[0]", true_params
     )
 
-    return y_pull, y_res, updated_cov, params_pulls_root[0], chi2sum
+    return y_pull, y_res, updated_cov, params_pulls_root[0], chi2sum[0]
 
 
+logging.getLogger().setLevel(logging.INFO)
+np.random.seed(10)
 layers = [int(i ** 1.5) for i in range(2, 10)]
 mu_p = []
 std_p = []
@@ -142,7 +137,7 @@ mu_c = []
 std_c = []
 for l in layers:
     print(f"layer {l}")
-    draws = 10000
+    draws = 1000
     bins = int(np.sqrt(draws))
     y_pul = []
     y_res = []

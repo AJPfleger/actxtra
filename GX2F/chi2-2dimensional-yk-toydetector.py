@@ -9,29 +9,33 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-
-# import ROOT
+import logging
 
 import chi2_utilities as c2u
 import propagators
+
+
+def ai_bi(ri, Vi, xi, params):
+
+    ai = 1 / Vi * np.array([[1, xi], [xi, xi ** 2],])
+    bi = ri / Vi * np.array([1, xi])
+
+    return ai, bi
 
 
 def get_pulls(plot_all, layers=12, cov=0.1):
 
     ## Initialising
     n_update = 15
-
-    # Parameter
-    start_params = np.array([0.0, 0])  # [y, k]
-    delta_params = np.zeros_like(start_params)
+    true_params = [12.345, 1]
+    # true_params = [np.random.uniform(-9,9), np.random.uniform(-0.9,0.9)]
+    start_params = np.array([0.0, 0.0])  # [y, k]
 
     # Geometry
     # detector_layers = np.array([2, 3, 5, 5.5, 5.7, 6.5])  # ,10,50,98,99,100])
     detector_layers = np.random.uniform(1, 12, layers)
 
-    # Hits
-    true_params = [12.345, 1]
-    # true_params = [np.random.uniform(-9,9), np.random.uniform(-0.9,0.9)]
+    # Generate hits
     measurments, cov_meas, measurments_raw = c2u.generate_hits(
         detector_layers,
         true_params,
@@ -40,35 +44,16 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         True,
     )
 
-    updated_params = start_params
-
-    ## Iterating and updating parameters
-    for _ in range(n_update):
-
-        updated_params = updated_params + delta_params
-
-        # Iterate over surfaces
-        a = np.zeros([2, 2])
-        b = np.zeros_like(start_params)
-        chi2sum = 0
-        for d in range(len(detector_layers)):
-            x = detector_layers[d]
-            # propagatedCov = straightLineCovarianceTransport(updated_cov,updated_params,h)
-            Vi = cov_meas[d]
-            ri = measurments[d] - propagators.straight_line_propagator_2D_yk(
-                updated_params, x
-            )
-            chi2sum += c2u.chi2_1D(Vi, ri)
-
-            ai = 1 / Vi * np.array([[1, x], [x, x ** 2],])
-            bi = ri / Vi * np.array([1, x])
-
-            a += ai
-            b += bi
-
-        delta_params = np.linalg.solve(a, b.transpose())
-
-    updated_cov = np.linalg.inv(a)
+    # Fit
+    a, updated_params, chi2sum, updated_cov = c2u.gx2f(
+        start_params,
+        detector_layers,
+        cov_meas,
+        measurments,
+        propagators.straight_line_propagator_2D_yk,
+        n_update,
+        ai_bi,
+    )
 
     params_res, params_pulls = c2u.calc_res_pulls(
         updated_params, true_params, updated_cov
@@ -150,6 +135,8 @@ def get_pulls(plot_all, layers=12, cov=0.1):
     return y_pull, k_pull, y_res, k_res, y_pull_root, k_pull_root, chi2sum
 
 
+logging.getLogger().setLevel(logging.INFO)
+np.random.seed(10)
 draws = 100
 layers = 30
 bins = int(np.sqrt(draws))

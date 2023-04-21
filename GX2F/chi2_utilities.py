@@ -191,3 +191,44 @@ def root_fit(detector_layers, measurments, cov, fit_func, true_params, angle_lik
         params_pulls[p] = params_res[p] / t_root.Error(p)
 
     return params_res, params_pulls
+
+
+def gx2f(
+    start_params,
+    detector_layers,
+    cov_meas,
+    measurments,
+    propagator,
+    n_update,
+    ai_bi_func,
+):
+
+    fit_dims = len(start_params)
+    updated_params = start_params
+    delta_params = np.zeros_like(start_params)
+
+    for _ in range(n_update):
+
+        updated_params = updated_params + delta_params
+
+        # Iterate over surfaces
+        a = np.zeros([fit_dims, fit_dims])
+        b = np.zeros(fit_dims)
+        chi2sum = 0
+        for d in range(len(detector_layers)):
+            mi = measurments[d]
+            xi = detector_layers[d]
+            Vi = cov_meas[d]
+            ri = mi - propagator(updated_params, xi)
+
+            chi2sum += chi2_1D(Vi, ri)
+
+            ai, bi = ai_bi_func(ri, Vi, xi, updated_params)
+            a += ai
+            b += bi
+
+        delta_params = np.linalg.solve(a, b.transpose())
+
+    updated_cov = np.linalg.inv(a)
+
+    return a, updated_params, chi2sum, updated_cov
