@@ -69,63 +69,31 @@ def get_pulls(plot_all, layers=5, cov=0.1, phi_true=-1):
     y_pull, phi_pull = params_pulls
 
     if plot_all:
-        print(f"updated_params: {updated_params}")
-        print(f"true_params: {true_params}")
-        print(f"diff: {updated_params - true_params}")
-        print(f"a:\n{a}")
-        print(f"cov_meas: {cov_meas}")
-        print(f"updated_cov:\n{updated_cov}")
-        print(f"pulls: {params_pulls}")
-        print("\n")
-
-        max_horizontal = max(detector_layers) + 1
-        max_vertical = 40
-
-        fig, ax = plt.subplots()
-
-        # Detector
-        for d in range(len(detector_layers)):
-            ax.plot(
-                [detector_layers[d], detector_layers[d]],
-                [-max_vertical, max_vertical],
-                "g-",
-            )
-            ax.plot(detector_layers[d], measurments[d], "gx")
-
-        # Trajectories
-        c2u.add_traj_to_plot(
-            ax,
-            start_params,
-            max_horizontal,
-            propagators.straight_line_propagator_2D_yphi,
-            "r",
-            "Start Trajectory",
-            "-",
+        geo_scatter_sigma = detector_layers * 0
+        start_traj = propagators.straight_line_propagator_stepwise_2D_scatter_yphi(
+            start_params, detector_layers, geo_scatter_sigma,
         )
-        c2u.add_traj_to_plot(
-            ax,
+        predicted_hits = propagators.straight_line_propagator_stepwise_2D_scatter_yphi(
+            updated_params, detector_layers, geo_scatter_sigma,
+        )
+
+        c2u.plot_current_state(
             updated_params,
-            max_horizontal,
-            propagators.straight_line_propagator_2D_yphi,
-            "b",
-            "Final Trajectory",
-            "-",
-        )
-        c2u.add_traj_to_plot(
-            ax,
             true_params,
-            max_horizontal,
-            propagators.straight_line_propagator_2D_yphi,
-            "k",
-            "Unsmeared True Trajectory",
-            "-.",
+            a,
+            updated_cov,
+            measurments,  # measurments_all,
+            detector_layers,  # geo_layers,
+            geo_scatter_sigma,
+            predicted_hits,
+            measurments_raw,
+            "",
+            params_pulls,
+            "2D-Fit [y,phi]",
+            "",  # "yphi-toydetector.pdf"
+            start_params,
+            start_traj,
         )
-
-        ax.set(xlabel="x", ylabel="y", title="2D-Fit [y,k]")
-        ax.legend()
-
-        # fig.savefig("test.png")
-        plt.show()
 
     ## root fit
     params_res_root, params_pulls_root = c2u.root_fit(

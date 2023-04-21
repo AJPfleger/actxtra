@@ -29,7 +29,7 @@ def get_pulls(plot_all, layers=12, cov=0.1):
     n_update = 15
     true_params = [12.345, 1]
     # true_params = [np.random.uniform(-9,9), np.random.uniform(-0.9,0.9)]
-    start_params = np.array([0.0, 0.0])  # [y, k]
+    start_params = np.array([11.0, 0.0])  # [y, k]
 
     # Geometry
     # detector_layers = np.array([2, 3, 5, 5.5, 5.7, 6.5])  # ,10,50,98,99,100])
@@ -63,67 +63,31 @@ def get_pulls(plot_all, layers=12, cov=0.1):
     y_pull, k_pull = params_pulls
 
     if plot_all:
-        print(f"updated_params: {updated_params}")
-        print(f"true_params: {true_params}")
-        print(f"diff: {updated_params - true_params}")
-        print(f"a:\n{a}")
-        print(f"cov_meas: {cov_meas}")
-        print(f"updated_cov:\n{updated_cov}")
-        print(f"pulls: {params_pulls}")
-        print("\n")
-
-        max_horizontal = max(detector_layers) + 1
-        min_v = min(min(measurments), start_params[0])
-        max_v = max(max(measurments), start_params[0])
-        delta_v = max_v - min_v
-        min_vertical = min_v - 0.3 * delta_v
-        max_vertical = max_v + 0.3 * delta_v
-
-        fig, ax = plt.subplots()
-
-        # Detector
-        for d in range(len(detector_layers)):
-            ax.plot(
-                [detector_layers[d], detector_layers[d]],
-                [min_vertical, max_vertical],
-                "g-",
-            )
-            ax.plot(detector_layers[d], measurments[d], "gx")
-
-        # Trajectories
-        c2u.add_traj_to_plot(
-            ax,
-            start_params,
-            max_horizontal,
-            propagators.straight_line_propagator_2D_yk,
-            "r",
-            "Start Trajectory",
-            "-",
+        geo_scatter_sigma = detector_layers * 0
+        start_traj = propagators.straight_line_propagator_stepwise_2D_scatter_yk(
+            start_params, detector_layers, geo_scatter_sigma,
         )
-        c2u.add_traj_to_plot(
-            ax,
+        predicted_hits = propagators.straight_line_propagator_stepwise_2D_scatter_yk(
+            updated_params, detector_layers, geo_scatter_sigma,
+        )
+
+        c2u.plot_current_state(
             updated_params,
-            max_horizontal,
-            propagators.straight_line_propagator_2D_yk,
-            "b",
-            "Final Trajectory",
-            "-",
-        )
-        c2u.add_traj_to_plot(
-            ax,
             true_params,
-            max_horizontal,
-            propagators.straight_line_propagator_2D_yk,
-            "k",
-            "Unsmeared True Trajectory",
-            "-.",
+            a,
+            updated_cov,
+            measurments,  # measurments_all,
+            detector_layers,  # geo_layers,
+            geo_scatter_sigma,
+            predicted_hits,
+            measurments_raw,
+            "",
+            params_pulls,
+            "2D-Fit [y,k]",
+            "",  # "yk-toydetector.pdf"
+            start_params,
+            start_traj,
         )
-
-        ax.set(xlabel="x", ylabel="y", title="2D-Fit [y,k]")
-        ax.legend()
-
-        fig.savefig("yk-toydetector.pdf")
-        plt.show()
 
     ## root fit
     params_res_root, params_pulls_root = c2u.root_fit(

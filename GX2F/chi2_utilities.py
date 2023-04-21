@@ -104,6 +104,8 @@ def plot_current_state(
     params_pulls="",
     plot_title="",
     plot_filename="",
+    start_params="",
+    start_traj="",
 ):
     if n != "":
         print(f"\nmax updates = {n}")
@@ -114,7 +116,7 @@ def plot_current_state(
         f"a:\n{a}\n"
         f"updated_cov:\n{updated_cov}"
     )
-    if n != "":
+    if params_pulls != "":
         print(f"pulls: {params_pulls}\n")
     print("\n")
 
@@ -136,6 +138,13 @@ def plot_current_state(
         ax.plot(geo_layers, measurments_all, "gx")
 
         # Trajectories
+        if start_params != "" and start_traj != "":
+            ax.plot(
+                np.append(0, geo_layers),
+                np.append(start_params[0], start_traj),
+                "r-",
+                label="Start Trajectory",
+            )
         ax.plot(
             np.append(0, geo_layers),
             np.append(updated_params[0], predicted_hits),
