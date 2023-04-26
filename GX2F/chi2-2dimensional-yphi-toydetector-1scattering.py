@@ -10,25 +10,21 @@
 # to the direction. This example includes 1 scattering surfaces
 
 import numpy as np
-import matplotlib.pyplot as plt
 import logging
 
 import chi2_utilities as c2u
 import propagators
 
+
 # scatter-angle for 1 GeV pion with 300 um silicon is about 0.8 mrad
 # https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&ved=2ahUKEwizosSqoLv-AhXUGogKHQYBBKkQFnoECCEQAQ&url=https%3A%2F%2Fe-publishing.cern.ch%2Findex.php%2FCYRSP%2Farticle%2Fdownload%2F534%2F396%2F1738&usg=AOvVaw14zhzJ76tfvdsFHtPDdkev
 def get_pulls(plot_all, layers=12, cov=0.001, scatter_sigma_rad=0.01):
 
-    ## Initialising
+    # Initialising
     n_update = 50
 
     # Parameter
-    # start_params = np.array([-0.08146, 0.79576, -0.08657])  # [y, k, theta1]
     start_params = np.array([0.0, 0.0, 0.0])  # [y, k, theta1]
-    # start_params = np.array([-4.42001868, 1.05611777, -1.19678728])  # [y, k, theta1]
-    # start_params = np.array([0.0, 0.79, 0.0])  # [y, k, theta1]
-    # start_params = np.array([12.345, 1, 0.0, 0.0])  # [y, k, theta1, theta2]
     delta_params = np.zeros_like(start_params)
 
     # Geometry
@@ -40,11 +36,6 @@ def get_pulls(plot_all, layers=12, cov=0.001, scatter_sigma_rad=0.01):
     cov_meas = np.ones_like(geo_layers) * cov
     geo_scatter_sigma = np.zeros_like(geo_layers)
     geo_scatter_sigma[[np.random.randint(3, layers - 3)]] = scatter_sigma_rad
-    # geo_scatter_sigma[[5, 9]] = scatter_sigma_rad
-
-    # detector_layers = geo_layers[geo_scatter_sigma == 0]
-    # scatter_layers = geo_layers[geo_scatter_sigma != 0]
-    # print(scatter_layers)
 
     # Hits
     true_params = [0, 0.79]
@@ -71,7 +62,7 @@ def get_pulls(plot_all, layers=12, cov=0.001, scatter_sigma_rad=0.01):
         print(f"measurments_all = {measurments_all}")
 
     chi2old = np.inf
-    ## Iterating and updating parameters
+    # Iterating and updating parameters
     for n in range(n_update):
 
         updated_params = updated_params + delta_params
@@ -90,16 +81,13 @@ def get_pulls(plot_all, layers=12, cov=0.001, scatter_sigma_rad=0.01):
         b = np.zeros_like(start_params)
         chi2sum = 0
         i_s = 0
-        # theta_sum = 0
-        # yn_shift = 0
         phi = updated_params[1]
         theta = updated_params[2]
         cosphi2 = np.cos(phi) ** 2
         cosphitheta2 = np.cos(phi + theta) ** 2
 
-        # tant1 = np.tan(t1)
         x_s = np.array([0, 0])
-        # dkidt = np.array([0,0])
+
         for g in range(len(geo_layers)):
             x = geo_layers[g]
 
@@ -111,12 +99,6 @@ def get_pulls(plot_all, layers=12, cov=0.001, scatter_sigma_rad=0.01):
 
                 bi = np.zeros_like(start_params)
                 bi[2 + i_s] = -updated_params[2 + i_s] / geo_scatter_sigma[g] ** 2
-
-                # yn_shift += x * df_dk(k0, theta_sum)
-                # theta_sum += updated_params[2+i_s]
-                # yn_shift -= x * df_dk(k0, theta_sum)
-
-                # dkidt[i_s] = df_dt(k0,theta_sum)
 
                 chi2sum += updated_params[2 + i_s] ** 2 / geo_scatter_sigma[g] ** 2
 
@@ -138,12 +120,11 @@ def get_pulls(plot_all, layers=12, cov=0.001, scatter_sigma_rad=0.01):
                     logging.warning(f"i_s = {i_s} should not happen")
 
                 abi_vec = np.array([[dydy0, dydp0, dydt1]])
-                # abi_vec = np.array([[dydy0, dydk0, dydt1, dydt2]])
 
                 ai = np.matmul(abi_vec.T, abi_vec)
 
                 # # Second derivatives
-                # # It seems that the don't change the result. Only the convergence speed changes.
+                # # It seems that they don't change the result. Only the convergence speed changes.
                 # # It seems to be around 20% faster on average, but there is a larger spread in
                 # # the convergence time ditribution.
                 # if i_s == 0:
@@ -167,7 +148,7 @@ def get_pulls(plot_all, layers=12, cov=0.001, scatter_sigma_rad=0.01):
                 #     ai[2,1] -= 2 * (x - x_s[0]) * np.tan(phi+theta) / cosphitheta2 * ri
                 #     ai[2,2] -= 2 * (x - x_s[0]) * np.tan(phi+theta) / cosphitheta2 * ri
                 # else:
-                #     print(f"i_s = {i_s} should not happen")
+                #     logging.warning(f"i_s = {i_s} should not happen")
 
                 ai /= Vi
                 bi = ri / Vi * abi_vec[0]
@@ -238,6 +219,7 @@ def get_pulls(plot_all, layers=12, cov=0.001, scatter_sigma_rad=0.01):
 
 logging.getLogger().setLevel(logging.INFO)
 np.random.seed(10)
+
 draws = 10000
 layers = 10
 bins = int(np.sqrt(draws))
@@ -256,25 +238,19 @@ for d in range(draws):
     y_pul.append(p_pulls[0])
     k_pul.append(p_pulls[1])
     t1_pul.append(p_pulls[2])
-    # t2_pul.append(p_pulls[3])
+
     y_res.append(p_res[0])
     k_res.append(p_res[1])
     t1_res.append(p_res[2])
-    # t2_res.append(p_res[3])
-    chi2sum.append(c2s)
 
+    chi2sum.append(c2s)
 
 c2u.plot_pull_distribution(y_res, f"y_res ({layers} hits)")
 c2u.plot_pull_distribution(k_res, f"phi_res({layers} hits)")
 c2u.plot_pull_distribution(t1_res, f"t1_res ({layers} hits)")
-# c2u.plot_pull_distribution(t2_res, f"t2_res ({layers} hits)")
 
 c2u.plot_pull_distribution(y_pul, f"y_pulls ({layers} hits)")
 c2u.plot_pull_distribution(k_pul, f"phi_pulls ({layers} hits)")
 c2u.plot_pull_distribution(t1_pul, f"t1_pulls ({layers} hits)")
-# c2u.plot_pull_distribution(t2_pul, f"t2_pulls ({layers} hits)")
-c2u.plot_chi2_distribution(chi2sum, f"$\chi^2$ ([y,k], {layers} hits)")
 
-plt.plot(t1_res, ".")
-# plt.ylim(-0.5, 0.2)
-plt.show()
+c2u.plot_chi2_distribution(chi2sum, f"$\chi^2$ ([y,k], {layers} hits)")
