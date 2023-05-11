@@ -10,8 +10,7 @@ Install location
 
 To keep everything clean all dependecies are tried to be installed in `/opt/hep`. For the installation process we generate a separeted folder.
 ```console
-mkdir setup_dependencies
-cd setup_dependencies
+mkdir setup_dependencies && cd setup_dependencies
 ```
 
 Brew Packages
@@ -33,14 +32,15 @@ xerces-c
 Does it also work with the current xerces version?
 ```console
 mkdir xerces && cd xerces
-
-# wget https://dlcdn.apache.org//xerces/c/3/sources/xerces-c-3.2.4.tar.gz
-wget https://archive.apache.org/dist/xerces/c/3/sources/xerces-c-3.2.3.tar.gz
-tar -zxvf xerces-c-3.2.3.tar.gz
-cd xerces-c-3.2.3
-
-cmake -S . -B build_opt_hep -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=/opt/hep/xerces-c -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr/local/opt/icu4c
-sudo cmake --build build_opt_hep --target install -j4
+wget https://archive.apache.org/dist/xerces/c/3/sources/xerces-c-3.2.4.tar.gz
+mkdir source
+tar -zxvf xerces-c-3.2.4.tar.gz --strip-components=1 -C source
+cmake -S source -B build \
+    -G "Unix Makefiles" \
+    -DCMAKE_INSTALL_PREFIX=/opt/hep/xerces-c \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_PREFIX_PATH=/usr/local/opt/icu4c
+sudo cmake --build build --target install -j8
 cd ../..
 ```
 
@@ -50,8 +50,9 @@ boost
 ```console
 mkdir boost && cd boost
 wget https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.gz
-tar -zxvf boost_1_82_0.tar.gz
-cd boost_1_82_0
+mkdir source
+tar -zxvf boost_1_82_0.tar.gz --strip-components=1 -C source
+cd source
 ./bootstrap.sh --prefix=/opt/hep/boost
 sudo ./b2 install --prefix=/opt/hep/boost
 cd ../..
@@ -61,12 +62,16 @@ eigen
 -----
 
 ```console
-git clone https://gitlab.com/libeigen/eigen.git
-cd eigen
+mkdir eigen && cd eigen
+git clone https://gitlab.com/libeigen/eigen.git source
+cd source
 git fetch --tags
 git checkout tags/3.4.0
-cmake -S . -B build_opt_hep -DCMAKE_INSTALL_PREFIX=/opt/hep/eigen -DCMAKE_CXX_STANDARD=17
-sudo cmake --build build_opt_hep --target install -j4
+cd ..
+cmake -S source -B build \
+    -DCMAKE_INSTALL_PREFIX=/opt/hep/eigen \
+    -DCMAKE_CXX_STANDARD=17
+sudo cmake --build build --target install -j8
 cd ..
 ```
 
@@ -74,12 +79,46 @@ Geant4
 ------
 
 ```console
-git clone https://gitlab.cern.ch/geant4/geant4.git
-cd geant4
+mkdir geant4 && cd geant4
+git clone https://gitlab.cern.ch/geant4/geant4.git source
+cd source
 git fetch --tags
-git checkout tags/v10.7.4
-cmake -S . -B build_opt_hep -DCMAKE_PREFIX_PATH="/opt/hep/xerces-c" -DCMAKE_INSTALL_PREFIX=/opt/hep/geant4 -DGEANT4_BUILD_CXXSTD=17 -DGEANT4_USE_GDML=On -DGEANT4_INSTALL_DATA=On
-sudo cmake --build build_opt_hep --target install -j8
+git checkout tags/v11.1.1
+cd ..
+cmake -S source -B build \
+    -DCMAKE_PREFIX_PATH="/opt/hep/xerces-c" \
+    -DCMAKE_INSTALL_PREFIX=/opt/hep/geant4 \
+    -DCMAKE_CXX_STANDARD=17 \
+    -DGEANT4_USE_GDML=On \
+    -DGEANT4_INSTALL_DATA=On \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DGEANT4_BUILD_TLS_MODEL=global-dynamic \
+    -DGEANT4_USE_SYSTEM_EXPAT=ON \
+    -DGEANT4_USE_SYSTEM_ZLIB=ON
+sudo cmake --build build --target install -j8
+cd ..
+```
+
+HepMC3
+------
+
+```console
+mkdir hepmc3 && cd hepmc3
+git clone https://gitlab.cern.ch/hepmc/HepMC3.git source
+cd source
+git fetch --tags 
+git checkout tags/3.2.5
+cd ..
+cmake -S source -B build \
+    -DCMAKE_PREFIX_PATH="/opt/hep/xerces-c;/opt/hep/geant4" \
+    -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_INSTALL_PREFIX=/opt/hep/hepmc3 \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DHEPMC3_BUILD_STATIC_LIBS=OFF \
+    -DHEPMC3_ENABLE_PYTHON=OFF \
+    -DHEPMC3_ENABLE_ROOTIO=OFF \
+    -DHEPMC3_ENABLE_SEARCH=OFF
+sudo cmake --build build --target install -j8
 cd ..
 ```
 
@@ -88,12 +127,28 @@ Pythia
 
 ```console
 mkdir pythia && cd pythia
-wget https://pythia.org/download/pythia83/pythia8307.tgz
-tar -zxvf pythia8307.tgz
-cd pythia8307
+wget https://pythia.org/download/pythia83/pythia8309.tgz
+mkdir source
+tar -zxvf pythia8309.tgz --strip-components=1 -C source
+cd source
 ./configure --prefix=/opt/hep/pythia8
-sudo make install -j4
+sudo make install -j8
 cd ../..
+```
+
+Json
+----
+
+```console
+mkdir json && cd json
+wget https://github.com/nlohmann/json/archive/refs/tags/v3.11.2.tar.gz
+mkdir source
+tar -zxvf v3.11.2.tar.gz --strip-components=1 -C source
+cmake -S source -B build \
+    -DCMAKE_INSTALL_PREFIX=/opt/hep/json \
+    -DJSON_BuildTests=OFF
+sudo cmake --build build --target install -j8
+cd ..
 ```
 
 Root
@@ -110,9 +165,35 @@ cd ..
 cmake -S source -B build \
     -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_INSTALL_PREFIX="/opt/hep/root" \
-    -DCMAKE_PREFIX_PATH="/opt/hep/xerces-c;/opt/hep/pythia8" \
-    -Dbuiltin_glew=On
-sudo cmake --build build_opt_hep --target install -j4
+    -DCMAKE_PREFIX_PATH="/opt/hep/xerces-c;/opt/hep/geant4;/opt/hep/pythia8;/opt/hep/json" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -Dfail-on-missing=ON \
+    -Dgdml=ON \
+    -Dx11=ON \
+    -Dpyroot=ON \
+    -Ddataframe=ON \
+    -Dmysql=OFF \
+    -Doracle=OFF \
+    -Dpgsql=OFF \
+    -Dsqlite=OFF \
+    -Dpythia6=OFF \
+    -Dpythia8=OFF \
+    -Dfftw3=OFF \
+    -Dbuiltin_cfitsio=ON \
+    -Dbuiltin_xxhash=ON \
+    -Dbuiltin_afterimage=ON \
+    -Dbuiltin_openssl=ON \
+    -Dbuiltin_ftgl=ON \
+    -Dgfal=OFF \
+    -Ddavix=OFF \
+    -Dbuiltin_vdt=ON \
+    -Dxrootd=OFF \
+    -Dtmva=OFF \
+    -Dbuiltin_pcre=ON \
+    -Dbuiltin_gsl=ON \
+    -Dbuiltin_glew=On \
+    -Dbuiltin_gl2ps=On
+sudo cmake --build build --target install -j8
 cd ..
 ```
 
@@ -142,7 +223,7 @@ mkdir podio && cd podio
 git clone https://github.com/AIDASoft/podio.git source
 cd source
 git fetch --tags
-git checkout tags/v00-15
+git checkout tags/v00-16-03
 cd ..
 cmake -S source -B build \
     -DCMAKE_CXX_STANDARD=17 \
@@ -150,25 +231,14 @@ cmake -S source -B build \
     -DCMAKE_PREFIX_PATH="/opt/hep/root;" \
     -DUSE_EXTERNAL_CATCH2=Off \
     -DBUILD_TESTING=Off
-sudo cmake --build build --target install -j4
+sudo cmake --build build --target install -j8
 cd ..
 
 ```
 
 EDM4Hep
 -------
-Does not work and gives the error:
-```
-  File "/opt/hep/podio/python/podio_class_generator.py", line 16, in <module>
-    import jinja2
-ModuleNotFoundError: No module named 'jinja2'
-CMake Error at /opt/hep/podio/lib/cmake/podio/podioMacros.cmake:198 (message):
-  Could not generate datamodel 'edm4hep'.  Check your definition in
-  '../edm4hep.yaml'
-Call Stack (most recent call first):
-  edm4hep/CMakeLists.txt:4 (PODIO_GENERATE_DATAMODEL)
-```
-But `Jinja2` is already installed.
+If you get a `Jinja2`-related error, you could try to use a more recent version of `EDM4Hep`.
 
 ```console
 mkdir edm4hep && cd edm4hep
@@ -182,11 +252,33 @@ cmake -S source -B build \
     -DCMAKE_INSTALL_PREFIX="/opt/hep/edm4hep;/" \
     -DCMAKE_PREFIX_PATH="/opt/hep/root;/opt/hep/podio;/opt/hep/hepmc3" \
     -DUSE_EXTERNAL_CATCH2=Off
-sudo cmake --build build --target install -j4
+sudo cmake --build build --target install -j8
 cd ..
 ```
 
+DD4hep
+------
 
+```console
+mkdir dd4hep && cd dd4hep
+git clone https://github.com/AIDASoft/DD4hep.git source
+cd source
+git fetch --tags
+git checkout tags/v01-25-01
+cd ..
+cmake -S source -B build_opt_hep \
+    -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_INSTALL_PREFIX="/opt/hep/dd4hep" \
+    -DCMAKE_PREFIX_PATH="/opt/hep/boost;/opt/hep/xerces-c;/opt/hep/root;/opt/hep/geant4;/opt/hep/hepmc3;/opt/hep/podio;/opt/hep/edm4hep" \
+     -DDD4HEP_USE_GEANT4=On \
+     -DDD4HEP_USE_EDM4HEP=On \
+     -DDD4HEP_RELAX_PYVER=On \
+     -DDD4HEP_USE_LCIO=Off \
+     -DDD4HEP_RELAX_PYVER=On \
+     -DBUILD_TESTING=Off
+sudo cmake --build build --target install -j8
+cd ..
+```
 
 
 
