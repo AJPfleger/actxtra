@@ -17,10 +17,10 @@ Brew Packages
 -------------
 
 ```console
-brew install cmake nlohmann-json
+brew install cmake
 ```
 
-The following still need investigation if really needed
+The following still need investigation if really needed:
 ```console
 brew install java
 sudo ln -sfn /usr/local/opt/openjdk/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk.jdk
@@ -197,24 +197,6 @@ sudo cmake --build build --target install -j8
 cd ..
 ```
 
-HepMC3
-------
-
-```console
-mkdir hepmc3 && cd hepmc3
-git clone https://gitlab.cern.ch/hepmc/HepMC3.git source
-cd source
-git fetch --tags 
-git checkout tags/3.2.5
-cd ..
-cmake -S source -B build \
-    -DCMAKE_PREFIX_PATH="/opt/hep/root" \
-    -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_INSTALL_PREFIX=/opt/hep/hepmc3
-sudo cmake --build build --target install -j4
-cd ..
-```
-
 PODIO
 -----
 
@@ -228,7 +210,7 @@ cd ..
 cmake -S source -B build \
     -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_INSTALL_PREFIX="/opt/hep/podio" \
-    -DCMAKE_PREFIX_PATH="/opt/hep/root;" \
+    -DCMAKE_PREFIX_PATH="/opt/hep/xerces-c;/opt/hep/geant4;/opt/hep/pythia8;/opt/hep/json;/opt/hep/hepmc3;/opt/hep/root;" \
     -DUSE_EXTERNAL_CATCH2=Off \
     -DBUILD_TESTING=Off
 sudo cmake --build build --target install -j8
@@ -240,18 +222,27 @@ EDM4Hep
 -------
 If you get a `Jinja2`-related error, you could try to use a more recent version of `EDM4Hep`.
 
+It might be required to install these two libraries. Remember to use a virtual enviroment.
+```console
+pip install jinja2 pyyaml
+```
+
+We are not the most recent version `tags/v00-07-02` (at the time of writing), because it does not compile. You could use [patch](https://patch-diff.githubusercontent.com/raw/key4hep/EDM4hep/pull/201.patch) to make it work.
+
 ```console
 mkdir edm4hep && cd edm4hep
 git clone https://github.com/key4hep/EDM4hep.git source
 cd source
 git fetch --tags
-git checkout tags/v00-07-02
+git checkout tags/v00-07
 cd ..
 cmake -S source -B build \
     -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_INSTALL_PREFIX="/opt/hep/edm4hep;/" \
-    -DCMAKE_PREFIX_PATH="/opt/hep/root;/opt/hep/podio;/opt/hep/hepmc3" \
-    -DUSE_EXTERNAL_CATCH2=Off
+    -DCMAKE_INSTALL_PREFIX="/opt/hep/edm4hep" \
+    -DCMAKE_PREFIX_PATH="/opt/hep/xerces-c;/opt/hep/geant4;/opt/hep/pythia8;/opt/hep/json;/opt/hep/hepmc3;/opt/hep/root;/opt/hep/podio" \
+    -DUSE_EXTERNAL_CATCH2=Off \
+    -DBUILD_TESTING=OFF \
+    -DCMAKE_BUILD_TYPE=Release
 sudo cmake --build build --target install -j8
 cd ..
 ```
@@ -260,30 +251,25 @@ DD4hep
 ------
 
 ```console
+export LD_LIBRARY_PATH="/opt/hep/geant4/lib"
+source /opt/hep/root/bin/thisroot.sh
+
 mkdir dd4hep && cd dd4hep
 git clone https://github.com/AIDASoft/DD4hep.git source
 cd source
 git fetch --tags
 git checkout tags/v01-25-01
 cd ..
-cmake -S source -B build_opt_hep \
+cmake -S source -B build \
     -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_INSTALL_PREFIX="/opt/hep/dd4hep" \
-    -DCMAKE_PREFIX_PATH="/opt/hep/boost;/opt/hep/xerces-c;/opt/hep/root;/opt/hep/geant4;/opt/hep/hepmc3;/opt/hep/podio;/opt/hep/edm4hep" \
-     -DDD4HEP_USE_GEANT4=On \
-     -DDD4HEP_USE_EDM4HEP=On \
-     -DDD4HEP_RELAX_PYVER=On \
-     -DDD4HEP_USE_LCIO=Off \
-     -DDD4HEP_RELAX_PYVER=On \
-     -DBUILD_TESTING=Off
+    -DDD4HEP_USE_GEANT4=On \
+    -DDD4HEP_USE_EDM4HEP=On \
+    -DBUILD_TESTING=Off \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DDD4HEP_USE_XERCESC=ON \
+    -DBUILD_DOCS=OFF \
+    -DCMAKE_PREFIX_PATH="/opt/hep/xerces-c;/opt/hep/geant4;/opt/hep/pythia8;/opt/hep/json;/opt/hep/hepmc3;/opt/hep/root;/opt/hep/podio;/opt/hep/edm4hep"
 sudo cmake --build build --target install -j8
 cd ..
 ```
-
-
-
-
-
-
-
-
