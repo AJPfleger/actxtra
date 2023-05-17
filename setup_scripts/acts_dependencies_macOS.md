@@ -273,3 +273,26 @@ cmake -S source -B build \
 sudo cmake --build build --target install -j8
 cd ..
 ```
+
+Other Dependencies (WIP)
+========================
+
+For pyg4ometry I encountered som problems on my machine (macOS 13.3.1). Executing `pip install pyg4ometry` resulted in many error messages similar to `ld: warning: dylib (/usr/local/lib/libTKernel.dylib) was built for newer macOS version (13.0) than being linked (10.9)` after installing all dependencies with brew (cgal, opencascade, cmake, python3X). The problem seems to be with tcl/tk which is a dependecy of opencascade. To solve this problem, we install build it manually.
+
+```console
+mkdir tcl && cd tcl
+wget http://prdownloads.sourceforge.net/tcl/tcl8.7a5-src.tar.gz
+mkdir source
+tar -zxvf tcl8.7a5-src.tar.gz --strip-components=1 -C source
+cd source/macosx
+./configure --prefix=/opt/deps/tcl
+make
+make test
+make install
+
+cmake -S source -B build \
+    -DCMAKE_INSTALL_PREFIX=/opt/hep/json \
+    -DJSON_BuildTests=OFF
+sudo cmake --build build --target install -j8
+cd ..
+```
