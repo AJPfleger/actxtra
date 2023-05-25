@@ -276,7 +276,7 @@ cd ..
 
 Other Dependencies (WIP)
 ========================
-
+THIS DOES NOT WORK
 For pyg4ometry I encountered som problems on my machine (macOS 13.3.1). Executing `pip install pyg4ometry` resulted in many error messages similar to `ld: warning: dylib (/usr/local/lib/libTKernel.dylib) was built for newer macOS version (13.0) than being linked (10.9)` after installing all dependencies with brew (cgal, opencascade, cmake, python3X). The problem seems to be with tcl/tk which is a dependecy of opencascade. To solve this problem, we install build it manually.
 
 ```console
@@ -284,11 +284,45 @@ mkdir tcl && cd tcl
 wget http://prdownloads.sourceforge.net/tcl/tcl8.7a5-src.tar.gz
 mkdir source
 tar -zxvf tcl8.7a5-src.tar.gz --strip-components=1 -C source
-cd source/macosx
-./configure --prefix=/opt/deps/tcl
+cd source/unix
+./configure --prefix=/opt/deps/tcl --enable-64bit --enable-framework
 make
-make test
-make install
+sudo make install -j8
+cd ../../..
+
+mkdir tk && cd tk
+wget http://prdownloads.sourceforge.net/tcl/tk8.7a5-src.tar.gz
+mkdir source
+tar -zxvf tk8.7a5-src.tar.gz --strip-components=1 -C source
+cd source/unix
+./configure --prefix=/opt/deps/tk --enable-64bit --enable-framework --with-tcl=../../../tcl/source/unix
+make
+sudo make install -j8
+cd ../../..
+```
+
+
+```console
+mkdir tcl8613 && cd tcl8613
+wget http://prdownloads.sourceforge.net/tcl/tcl8.6.13-src.tar.gz
+mkdir source
+tar -zxvf tcl8.6.13-src.tar.gz --strip-components=1 -C source
+cd source/unix
+./configure --prefix=/opt/deps2/tcl --enable-64bit --enable-framework
+make
+sudo make install -j8
+cd ../../..
+
+mkdir tk8613 && cd tk8613
+wget http://prdownloads.sourceforge.net/tcl/tk8.6.13-src.tar.gz
+mkdir source
+tar -zxvf tk8.6.13-src.tar.gz --strip-components=1 -C source
+cd source/unix
+./configure --prefix=/opt/deps2/tk --enable-64bit --enable-framework --with-tcl=../../../tcl8613/source/unix
+make
+sudo make install -j8
+cd ../../..
+```
 
 cmake -S source -B build \
     -DCMAKE_INSTALL_PREFIX=/opt/hep/json \
