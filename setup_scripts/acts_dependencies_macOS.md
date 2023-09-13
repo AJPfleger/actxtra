@@ -41,7 +41,7 @@ cmake -S source -B build \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_PREFIX_PATH=/usr/local/opt/icu4c
 sudo cmake --build build --target install -j8
-cd ../..
+cd ..
 ```
 
 boost
