@@ -15,7 +15,7 @@ mkdir setup_dependencies && cd setup_dependencies
 
 Brew Packages
 -------------
-
+Last tested with cmake version `3.27.4`.
 ```console
 brew install cmake
 ```
@@ -78,6 +78,8 @@ cd ..
 Geant4
 ------
 
+We need `-DGEANT4_INSTALL_PACKAGE_CACHE=OFF` for cmake 3.27: https://geant4-forum.web.cern.ch/t/issues-compiling-a-geant4-example-on-macos-incorrect-macro-invocation-in-geant4packagecache-cmake/10936/2
+
 ```console
 mkdir geant4 && cd geant4
 git clone https://gitlab.cern.ch/geant4/geant4.git source
@@ -94,7 +96,8 @@ cmake -S source -B build \
     -DCMAKE_BUILD_TYPE=Release \
     -DGEANT4_BUILD_TLS_MODEL=global-dynamic \
     -DGEANT4_USE_SYSTEM_EXPAT=ON \
-    -DGEANT4_USE_SYSTEM_ZLIB=ON
+    -DGEANT4_USE_SYSTEM_ZLIB=ON \
+    -DGEANT4_INSTALL_PACKAGE_CACHE=OFF
 sudo cmake --build build --target install -j8
 cd ..
 ```
@@ -264,6 +267,10 @@ cd ..
 
 DD4hep
 ------
+cmake version >= 3.27 introduces a [bug](https://bugzilla-geant4.kek.jp/show_bug.cgi?id=2556). It can be solved by deleting this file:
+```console
+sudo rm /opt/hep/geant4/lib/cmake/Geant4/Geant4PackageCache.cmake
+```
 
 ```console
 export LD_LIBRARY_PATH="/opt/hep/geant4/lib"
