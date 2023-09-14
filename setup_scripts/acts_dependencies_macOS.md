@@ -155,13 +155,29 @@ Root
 ----
 This is a bit troublesome. Apparently there has some problem with this macOS-version and root [https://root-forum.cern.ch/t/building-failed-after-upgrade-to-mac-os-13-3-1/54420/7](https://root-forum.cern.ch/t/building-failed-after-upgrade-to-mac-os-13-3-1/54420/7).
 
+`v6.28.02` has problem on macOS 13.3.1:
+```
+[ 76%] Linking CXX shared library ../../../lib/libCling.so
+While building module 'Core':
+While building module 'ROOT_Foundation_Stage1_NoRTTI' imported from /Users/ajpMac/ACTS/setup_dependencies/root/build/include/Rtypes.h:195:
+In file included from <module-includes>:4:
+/Users/ajpMac/ACTS/setup_dependencies/root/build/include/TClassEdit.h:29:10: fatal error: 'cxxabi.h' file not found
+#include <cxxabi.h>
+         ^~~~~~~~~~
+In file included from input_line_3:2:
+/Users/ajpMac/ACTS/setup_dependencies/root/build/include/Rtypes.h:195:10: fatal error: could not build module 'ROOT_Foundation_Stage1_NoRTTI'
+#include "TIsAProxy.h"
+ ~~~~~~~~^~~~~~~~~~~~~
+Error: Error loading the default rootcling header files.
+```
+
+
+
 ```console
 mkdir root && cd root
-git clone https://github.com/root-project/root.git source
-cd source
-git fetch --tags
-git checkout tags/v6-28-00-patches
-cd ..
+wget https://root.cern/download/root_v6.28.04.source.tar.gz
+mkdir source
+tar -zxvf root_v6.28.04.source.tar.gz --strip-components=1 -C source
 cmake -S source -B build \
     -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_INSTALL_PREFIX="/opt/hep/root" \
@@ -215,7 +231,6 @@ cmake -S source -B build \
     -DBUILD_TESTING=Off
 sudo cmake --build build --target install -j8
 cd ..
-
 ```
 
 EDM4Hep
