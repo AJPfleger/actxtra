@@ -7,21 +7,7 @@ import numpy as np
 import hist
 
 
-# Open the ROOT file
-file_path = "../../gx2f-push/testexports/itk_output/itk_trackstates_fitter.root"
-rf = uproot.open(file_path)
-
-# # Print the list of keys (objects) in the ROOT file
-# print("Keys in the ROOT file:")
-# print(rf.keys())
-
-# Choose a specific key (object) to extract data from
-treename = rf.keys()[-1]  # "trackstates;1"  # Replace with the actual key name
-tree = rf[treename]
-
-for df in tree.iterate(library="ak", how=dict):
-    print(df["eLOC0_prt"])
-
+def plot_detector(df):
     g_x = df["g_x_hit"]
     g_y = df["g_y_hit"]
     g_z = df["g_z_hit"]
@@ -33,7 +19,6 @@ for df in tree.iterate(library="ak", how=dict):
 
     g_r = (g_x**2 + g_y**2) ** 0.5
 
-    # plot detector
     log_pix_bar_in = volume_id == 9
     log_pix_bar_out = volume_id == 16
     log_strip_bar = volume_id == 23
@@ -57,6 +42,11 @@ for df in tree.iterate(library="ak", how=dict):
     legend1 = ax.legend(*scatter.legend_elements(), loc="lower left", title="Classes")
     ax.add_artist(legend1)
     plt.show()
+
+
+def plot_1d_hists(df):
+    layer_id = df["layer_id"]
+    volume_id = df["volume_id"]
 
     ## Plot pulls and residuals for each layer
     # Create a 2x3 grid of subplots
@@ -85,7 +75,6 @@ for df in tree.iterate(library="ak", how=dict):
     for i, ax in enumerate(axes.flatten()):
         data_leaf = df[leaves[i]]
         volume_layer_pairs = [(9, 2), (9, 4), (16, 2), (16, 4), (16, 6)]
-        # volume_layer_pairs = [(9,2)]
 
         hmin = min(ak.flatten(data_leaf))
         hmax = max(ak.flatten(data_leaf))
@@ -114,6 +103,23 @@ for df in tree.iterate(library="ak", how=dict):
 
     plt.legend()
     plt.show()
+
+
+# Open the ROOT file
+file_path = "../../gx2f-push/testexports/itk_output/itk_trackstates_fitter.root"
+rf = uproot.open(file_path)
+
+# # Print the list of keys (objects) in the ROOT file
+# print("Keys in the ROOT file:")
+# print(rf.keys())
+
+# Choose a specific key (object) to extract data from
+treename = rf.keys()[-1]  # "trackstates;1"  # Replace with the actual key name
+tree = rf[treename]
+
+for df in tree.iterate(library="ak", how=dict):
+    plot_detector(df)
+    plot_1d_hists(df)
 
     break
 
