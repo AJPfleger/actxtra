@@ -11,6 +11,52 @@ To keep everything clean all dependecies are tried to be installed in `/opt/hep`
 mkdir setup_dependencies && cd setup_dependencies
 ```
 
+## Python
+
+To ensure we always use the same python version, use [pyenv]().
+
+```console
+brew install pyenv
+```
+Next set the shell environment like in [this guide](https://github.com/pyenv/pyenv?tab=readme-ov-file#set-up-your-shell-environment-for-pyenv)
+```console
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zprofile
+echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zprofile
+echo 'eval "$(pyenv init -)"' >> ~/.zprofile
+
+exec "$SHELL"
+```
+If this doesn't work, try to set the other profiles. `pyenv init` might give some hints as well.
+```console
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+echo 'eval "$(pyenv init -)"' >> ~/.bashrc
+
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.profile
+echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.profile
+echo 'eval "$(pyenv init -)"' >> ~/.profile
+
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bash_profile
+echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bash_profile
+echo 'eval "$(pyenv init -)"' >> ~/.bash_profile
+
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
+echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
+echo 'eval "$(pyenv init -)"' >> ~/.zshrc
+
+exec "$SHELL"
+```
+
+```console
+pyenv install 3.12.1
+pyenv global 3.12.1
+```
+Create a virtual environment, that we will use forever.
+```console
+python3 -m venv venv-acts
+source venv-acts/bin/activate
+```
+
 ## Brew Packages
 
 Last tested with:
@@ -20,7 +66,6 @@ Last tested with:
 ```console
 brew install cmake xerces-c boost
 ```
-
 
 The following still need investigation if really needed:
 ```console
@@ -102,7 +147,7 @@ cd ../..
 ```
 
 ## Root
-----
+
 ```console
 mkdir root && cd root
 wget https://root.cern/download/root_v6.30.02.source.tar.gz
@@ -117,7 +162,7 @@ cmake -S source -B build \
     -Dfail-on-missing=ON \
     -Dgdml=ON \
     -Dx11=ON \
-    -Dpyroot=On \
+    -Dpyroot=ON \
     -Ddataframe=ON \
     -Dmysql=OFF \
     -Doracle=OFF \
@@ -133,8 +178,8 @@ cmake -S source -B build \
     -Dbuiltin_ftgl=ON \
     -Dbuiltin_glew=ON \
     -Dbuiltin_gsl=ON \
-    -Dbuiltin_gl2ps=ON \
-    -Dbuiltin_xrootd=ON \
+    -Dbuiltin_gl2ps=OFF \
+    -Dbuiltin_xrootd=OFF \
     -Dbuiltin_pcre=ON \
     -Dbuiltin_lzma=ON \
     -Dbuiltin_zstd=ON \
@@ -143,32 +188,28 @@ cmake -S source -B build \
     -Ddavix=OFF \
     -Dbuiltin_vdt=ON \
     -Dxrootd=OFF \
-    -Dtmva=OFF
+    -Dtmva=OFF \
+    -DPYTHON_INCLUDE_DIR="~/ACTS/setup_dependencies/venv-acts/bin/python" \
+    -Druntime_cxxmodules=ON
 sudo cmake --build build --target install -j8
 cd ..
 ```
 
 
-
-
-
-
-
 ## PODIO
------
 
 ```console
 mkdir podio && cd podio
 git clone https://github.com/AIDASoft/podio.git source
 cd source
 git fetch --tags
-git checkout tags/v00-17-04
+git checkout tags/v00-99
 cd ..
 cmake -S source -B build \
     -GNinja \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_INSTALL_PREFIX="/opt/hep/podio/00-17-04" \
+    -DCMAKE_INSTALL_PREFIX="/opt/hep/podio/00-99" \
     -DCMAKE_PREFIX_PATH="/opt/hep/geant4/11.2.0;/opt/hep/pythia8/3810;/opt/hep/json/3.11.3;/opt/hep/root/6.30.02" \
     -DUSE_EXTERNAL_CATCH2=Off \
     -DBUILD_TESTING=Off
@@ -177,27 +218,25 @@ cd ..
 ```
 
 ## EDM4Hep
--------
+
 If you get a `Jinja2`-related error, you could try to use a more recent version of `EDM4Hep`.
 
-It might be required to install these two libraries. Remember to use a virtual enviroment.
 ```console
 pip install jinja2 pyyaml
 ```
-
-We are not the most recent version `tags/v00-07-02` (at the time of writing), because it does not compile. You could use [patch](https://patch-diff.githubusercontent.com/raw/key4hep/EDM4hep/pull/201.patch) to make it work.
 
 ```console
 mkdir edm4hep && cd edm4hep
 git clone https://github.com/key4hep/EDM4hep.git source
 cd source
 git fetch --tags
-git checkout tags/v00-07
+git checkout tags/v00-10-03
 cd ..
 cmake -S source -B build \
+    -GNinja \
     -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_INSTALL_PREFIX="/opt/hep/edm4hep" \
-    -DCMAKE_PREFIX_PATH="/opt/hep/xerces-c;/opt/hep/geant4;/opt/hep/pythia8;/opt/hep/json;/opt/hep/hepmc3;/opt/hep/root;/opt/hep/podio" \
+    -DCMAKE_INSTALL_PREFIX="/opt/hep/edm4hep/00-10-03" \
+    -DCMAKE_PREFIX_PATH="/opt/hep/geant4/11.2.0;/opt/hep/pythia8/3810;/opt/hep/json/3.11.3;/opt/hep/root/6.30.02;/opt/hep/podio/00-99" \
     -DUSE_EXTERNAL_CATCH2=Off \
     -DBUILD_TESTING=OFF \
     -DCMAKE_BUILD_TYPE=Release
@@ -206,32 +245,34 @@ cd ..
 ```
 
 ## DD4hep
-------
-cmake version >= 3.27 introduces a [bug](https://bugzilla-geant4.kek.jp/show_bug.cgi?id=2556). It can be solved by deleting this file:
+
+*probably fixed in DD4hep v01-27-02:* cmake version >= 3.27 introduces a [bug](https://bugzilla-geant4.kek.jp/show_bug.cgi?id=2556). It can be solved by deleting this file:
 ```console
 sudo rm /opt/hep/geant4/lib/cmake/Geant4/Geant4PackageCache.cmake
 ```
 
 ```console
-export LD_LIBRARY_PATH="/opt/hep/geant4/lib"
-source /opt/hep/root/bin/thisroot.sh
+export LD_LIBRARY_PATH="/opt/hep/geant4/11.2.0/lib"
+source /opt/hep/root/6.30.02/bin/thisroot.sh
 
 mkdir dd4hep && cd dd4hep
 git clone https://github.com/AIDASoft/DD4hep.git source
 cd source
 git fetch --tags
-git checkout tags/v01-25-01
+git checkout tags/v01-27-02
 cd ..
 cmake -S source -B build \
-    -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_INSTALL_PREFIX="/opt/hep/dd4hep" \
-    -DDD4HEP_USE_GEANT4=On \
-    -DDD4HEP_USE_EDM4HEP=On \
-    -DBUILD_TESTING=Off \
+    -GNinja \
     -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_INSTALL_PREFIX="/opt/hep/dd4hep/01-27-02" \
+    -DDD4HEP_BUILD_PACKAGES="DDG4 DDDetectors DDRec UtilityApps" \
+    -DDD4HEP_USE_GEANT4=ON \
     -DDD4HEP_USE_XERCESC=ON \
+    -DDD4HEP_USE_EDM4HEP=ON \
+    -DBUILD_TESTING=Off \
     -DBUILD_DOCS=OFF \
-    -DCMAKE_PREFIX_PATH="/opt/hep/xerces-c;/opt/hep/geant4;/opt/hep/pythia8;/opt/hep/json;/opt/hep/hepmc3;/opt/hep/root;/opt/hep/podio;/opt/hep/edm4hep"
+    -DCMAKE_PREFIX_PATH="/opt/hep/geant4/11.2.0;/opt/hep/pythia8/3810;/opt/hep/json/3.11.3;/opt/hep/root/6.30.02;/opt/hep/podio/00-99;/opt/hep/edm4hep/00-10-03"
 sudo cmake --build build --target install -j8
 cd ..
 ```
