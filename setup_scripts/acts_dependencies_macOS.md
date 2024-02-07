@@ -1,23 +1,70 @@
-Guide to get all dependencies for macOS for ACTS
-================================================
+# Guide to get all dependencies for macOS for ACTS
 
 This guide is based on [https://codimd.web.cern.ch/s/w-7j8zXm0](https://codimd.web.cern.ch/s/w-7j8zXm0) (CERN SSO might be required).
 
-This guide was written for macOS 13.3.1  (a) but might be incomplete. You could also have a look at [https://github.com/paulgessinger/ci-dependencies/tree/build_cmake](https://github.com/paulgessinger/ci-dependencies/tree/build_cmake).
+This guide was written for macOS 14.3 but might be incomplete. You could also have a look at [https://github.com/paulgessinger/ci-dependencies/tree/build_cmake](https://github.com/paulgessinger/ci-dependencies/tree/build_cmake). For older versions of this guide, go through the commit history.
 
-Install location
-----------------
+## Install location
 
 To keep everything clean all dependecies are tried to be installed in `/opt/hep`. For the installation process we generate a separeted folder.
 ```console
 mkdir setup_dependencies && cd setup_dependencies
 ```
 
-Brew Packages
--------------
-Last tested with cmake version `3.27.4`.
+## Python
+
+To ensure we always use the same python version, use [pyenv]().
+
 ```console
-brew install cmake
+brew install pyenv
+```
+Next set the shell environment like in [this guide](https://github.com/pyenv/pyenv?tab=readme-ov-file#set-up-your-shell-environment-for-pyenv)
+```console
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zprofile
+echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zprofile
+echo 'eval "$(pyenv init -)"' >> ~/.zprofile
+
+exec "$SHELL"
+```
+If this doesn't work, try to set the other profiles. `pyenv init` might give some hints as well.
+```console
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+echo 'eval "$(pyenv init -)"' >> ~/.bashrc
+
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.profile
+echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.profile
+echo 'eval "$(pyenv init -)"' >> ~/.profile
+
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bash_profile
+echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bash_profile
+echo 'eval "$(pyenv init -)"' >> ~/.bash_profile
+
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
+echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
+echo 'eval "$(pyenv init -)"' >> ~/.zshrc
+
+exec "$SHELL"
+```
+
+```console
+pyenv install 3.12.1
+pyenv global 3.12.1
+```
+Create a virtual environment, that we will use forever.
+```console
+python3 -m venv venv-acts
+source venv-acts/bin/activate
+```
+
+## Brew Packages
+
+Last tested with:
+- cmake `3.28.2`
+- xerces-c `3.2.5`
+- boost 1.84.0
+```console
+brew install cmake xerces-c boost
 ```
 
 The following still need investigation if really needed:
@@ -27,39 +74,24 @@ sudo ln -sfn /usr/local/opt/openjdk/libexec/openjdk.jdk /Library/Java/JavaVirtua
 brew install glfw3 glew
 ```
 
-xerces-c
---------
-Does it also work with the current xerces version?
+## Json
+
 ```console
-mkdir xerces && cd xerces
-wget https://archive.apache.org/dist/xerces/c/3/sources/xerces-c-3.2.4.tar.gz
+mkdir json && cd json
+wget https://github.com/nlohmann/json/archive/refs/tags/v3.11.3.tar.gz
 mkdir source
-tar -zxvf xerces-c-3.2.4.tar.gz --strip-components=1 -C source
+tar -zxvf v3.11.3.tar.gz --strip-components=1 -C source
 cmake -S source -B build \
-    -G "Unix Makefiles" \
-    -DCMAKE_INSTALL_PREFIX=/opt/hep/xerces-c \
+    -GNinja \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_PREFIX_PATH=/usr/local/opt/icu4c
+    -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_INSTALL_PREFIX=/opt/hep/json/3.11.3 \
+    -DJSON_BuildTests=OFF
 sudo cmake --build build --target install -j8
 cd ..
 ```
 
-boost
------
-
-```console
-mkdir boost && cd boost
-wget https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.gz
-mkdir source
-tar -zxvf boost_1_82_0.tar.gz --strip-components=1 -C source
-cd source
-./bootstrap.sh --prefix=/opt/hep/boost
-sudo ./b2 install --prefix=/opt/hep/boost
-cd ../..
-```
-
-eigen
------
+## eigen
 
 ```console
 mkdir eigen && cd eigen
@@ -69,123 +101,64 @@ git fetch --tags
 git checkout tags/3.4.0
 cd ..
 cmake -S source -B build \
-    -DCMAKE_INSTALL_PREFIX=/opt/hep/eigen \
+    -GNinja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/opt/hep/eigen/3.4.0 \
     -DCMAKE_CXX_STANDARD=17
 sudo cmake --build build --target install -j8
 cd ..
 ```
 
-Geant4
-------
 
-We need `-DGEANT4_INSTALL_PACKAGE_CACHE=OFF` for cmake 3.27: https://geant4-forum.web.cern.ch/t/issues-compiling-a-geant4-example-on-macos-incorrect-macro-invocation-in-geant4packagecache-cmake/10936/2
+## Geant4
 
 ```console
 mkdir geant4 && cd geant4
 git clone https://gitlab.cern.ch/geant4/geant4.git source
 cd source
 git fetch --tags
-git checkout tags/v11.1.1
+git checkout tags/v11.2.0
 cd ..
 cmake -S source -B build \
-    -DCMAKE_PREFIX_PATH="/opt/hep/xerces-c" \
-    -DCMAKE_INSTALL_PREFIX=/opt/hep/geant4 \
-    -DCMAKE_CXX_STANDARD=17 \
-    -DGEANT4_USE_GDML=On \
-    -DGEANT4_INSTALL_DATA=On \
+    -GNinja \
     -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_INSTALL_PREFIX=/opt/hep/geant4/11.2.0 \
     -DGEANT4_BUILD_TLS_MODEL=global-dynamic \
+    -DGEANT4_INSTALL_DATA=ON \
+    -DGEANT4_USE_GDML=ON \
     -DGEANT4_USE_SYSTEM_EXPAT=ON \
-    -DGEANT4_USE_SYSTEM_ZLIB=ON \
-    -DGEANT4_INSTALL_PACKAGE_CACHE=OFF
+    -DGEANT4_USE_SYSTEM_ZLIB=ON
 sudo cmake --build build --target install -j8
 cd ..
 ```
 
-HepMC3
-------
-
-```console
-mkdir hepmc3 && cd hepmc3
-git clone https://gitlab.cern.ch/hepmc/HepMC3.git source
-cd source
-git fetch --tags 
-git checkout tags/3.2.5
-cd ..
-cmake -S source -B build \
-    -DCMAKE_PREFIX_PATH="/opt/hep/xerces-c;/opt/hep/geant4" \
-    -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_INSTALL_PREFIX=/opt/hep/hepmc3 \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DHEPMC3_BUILD_STATIC_LIBS=OFF \
-    -DHEPMC3_ENABLE_PYTHON=OFF \
-    -DHEPMC3_ENABLE_ROOTIO=OFF \
-    -DHEPMC3_ENABLE_SEARCH=OFF
-sudo cmake --build build --target install -j8
-cd ..
-```
-
-Pythia
-------
+## Pythia
 
 ```console
 mkdir pythia && cd pythia
-wget https://pythia.org/download/pythia83/pythia8309.tgz
+wget https://pythia.org/download/pythia83/pythia8310.tgz
 mkdir source
-tar -zxvf pythia8309.tgz --strip-components=1 -C source
+tar -zxvf pythia8310.tgz --strip-components=1 -C source
 cd source
-./configure --prefix=/opt/hep/pythia8
+./configure --prefix=/opt/hep/pythia8/8310
 sudo make install -j8
 cd ../..
 ```
 
-Json
-----
-
-```console
-mkdir json && cd json
-wget https://github.com/nlohmann/json/archive/refs/tags/v3.11.2.tar.gz
-mkdir source
-tar -zxvf v3.11.2.tar.gz --strip-components=1 -C source
-cmake -S source -B build \
-    -DCMAKE_INSTALL_PREFIX=/opt/hep/json \
-    -DJSON_BuildTests=OFF
-sudo cmake --build build --target install -j8
-cd ..
-```
-
-Root
-----
-This is a bit troublesome. Apparently there has some problem with this macOS-version and root [https://root-forum.cern.ch/t/building-failed-after-upgrade-to-mac-os-13-3-1/54420/7](https://root-forum.cern.ch/t/building-failed-after-upgrade-to-mac-os-13-3-1/54420/7).
-
-`v6.28.02` has problem on macOS 13.3.1:
-```
-[ 76%] Linking CXX shared library ../../../lib/libCling.so
-While building module 'Core':
-While building module 'ROOT_Foundation_Stage1_NoRTTI' imported from /Users/ajpMac/ACTS/setup_dependencies/root/build/include/Rtypes.h:195:
-In file included from <module-includes>:4:
-/Users/ajpMac/ACTS/setup_dependencies/root/build/include/TClassEdit.h:29:10: fatal error: 'cxxabi.h' file not found
-#include <cxxabi.h>
-         ^~~~~~~~~~
-In file included from input_line_3:2:
-/Users/ajpMac/ACTS/setup_dependencies/root/build/include/Rtypes.h:195:10: fatal error: could not build module 'ROOT_Foundation_Stage1_NoRTTI'
-#include "TIsAProxy.h"
- ~~~~~~~~^~~~~~~~~~~~~
-Error: Error loading the default rootcling header files.
-```
-
-
+## Root
 
 ```console
 mkdir root && cd root
-wget https://root.cern/download/root_v6.28.04.source.tar.gz
+wget https://root.cern/download/root_v6.30.02.source.tar.gz
 mkdir source
-tar -zxvf root_v6.28.04.source.tar.gz --strip-components=1 -C source
+tar -zxvf root_v6.30.02.source.tar.gz --strip-components=1 -C source
 cmake -S source -B build \
-    -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_INSTALL_PREFIX="/opt/hep/root" \
-    -DCMAKE_PREFIX_PATH="/opt/hep/xerces-c;/opt/hep/geant4;/opt/hep/pythia8;/opt/hep/json" \
+    -GNinja \
+    -DCMAKE_PREFIX_PATH="/opt/hep/geant4/11.2.0;/opt/hep/pythia8/3810;/opt/hep/json/3.11.3" \
     -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_INSTALL_PREFIX=/opt/hep/root/6.30.02 \
     -Dfail-on-missing=ON \
     -Dgdml=ON \
     -Dx11=ON \
@@ -203,61 +176,67 @@ cmake -S source -B build \
     -Dbuiltin_afterimage=ON \
     -Dbuiltin_openssl=ON \
     -Dbuiltin_ftgl=ON \
+    -Dbuiltin_glew=ON \
+    -Dbuiltin_gsl=ON \
+    -Dbuiltin_gl2ps=OFF \
+    -Dbuiltin_xrootd=OFF \
+    -Dbuiltin_pcre=ON \
+    -Dbuiltin_lzma=ON \
+    -Dbuiltin_zstd=ON \
+    -Dbuiltin_lz4=ON \
     -Dgfal=OFF \
     -Ddavix=OFF \
     -Dbuiltin_vdt=ON \
     -Dxrootd=OFF \
     -Dtmva=OFF \
-    -Dbuiltin_pcre=ON \
-    -Dbuiltin_gsl=ON \
-    -Dbuiltin_glew=On \
-    -Dbuiltin_gl2ps=On
+    -DPYTHON_INCLUDE_DIR="~/ACTS/setup_dependencies/venv-acts/bin/python" \
+    -Druntime_cxxmodules=ON
 sudo cmake --build build --target install -j8
 cd ..
 ```
 
-PODIO
------
+
+## PODIO
 
 ```console
 mkdir podio && cd podio
 git clone https://github.com/AIDASoft/podio.git source
 cd source
 git fetch --tags
-git checkout tags/v00-16-03
+git checkout tags/v00-99
 cd ..
 cmake -S source -B build \
+    -GNinja \
+    -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_INSTALL_PREFIX="/opt/hep/podio" \
-    -DCMAKE_PREFIX_PATH="/opt/hep/xerces-c;/opt/hep/geant4;/opt/hep/pythia8;/opt/hep/json;/opt/hep/hepmc3;/opt/hep/root;" \
+    -DCMAKE_INSTALL_PREFIX="/opt/hep/podio/00-99" \
+    -DCMAKE_PREFIX_PATH="/opt/hep/geant4/11.2.0;/opt/hep/pythia8/3810;/opt/hep/json/3.11.3;/opt/hep/root/6.30.02" \
     -DUSE_EXTERNAL_CATCH2=Off \
     -DBUILD_TESTING=Off
 sudo cmake --build build --target install -j8
 cd ..
 ```
 
-EDM4Hep
--------
+## EDM4Hep
+
 If you get a `Jinja2`-related error, you could try to use a more recent version of `EDM4Hep`.
 
-It might be required to install these two libraries. Remember to use a virtual enviroment.
 ```console
 pip install jinja2 pyyaml
 ```
-
-We are not the most recent version `tags/v00-07-02` (at the time of writing), because it does not compile. You could use [patch](https://patch-diff.githubusercontent.com/raw/key4hep/EDM4hep/pull/201.patch) to make it work.
 
 ```console
 mkdir edm4hep && cd edm4hep
 git clone https://github.com/key4hep/EDM4hep.git source
 cd source
 git fetch --tags
-git checkout tags/v00-07
+git checkout tags/v00-10-03
 cd ..
 cmake -S source -B build \
+    -GNinja \
     -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_INSTALL_PREFIX="/opt/hep/edm4hep" \
-    -DCMAKE_PREFIX_PATH="/opt/hep/xerces-c;/opt/hep/geant4;/opt/hep/pythia8;/opt/hep/json;/opt/hep/hepmc3;/opt/hep/root;/opt/hep/podio" \
+    -DCMAKE_INSTALL_PREFIX="/opt/hep/edm4hep/00-10-03" \
+    -DCMAKE_PREFIX_PATH="/opt/hep/geant4/11.2.0;/opt/hep/pythia8/3810;/opt/hep/json/3.11.3;/opt/hep/root/6.30.02;/opt/hep/podio/00-99" \
     -DUSE_EXTERNAL_CATCH2=Off \
     -DBUILD_TESTING=OFF \
     -DCMAKE_BUILD_TYPE=Release
@@ -265,90 +244,35 @@ sudo cmake --build build --target install -j8
 cd ..
 ```
 
-DD4hep
-------
-cmake version >= 3.27 introduces a [bug](https://bugzilla-geant4.kek.jp/show_bug.cgi?id=2556). It can be solved by deleting this file:
+## DD4hep
+
+*probably fixed in DD4hep v01-27-02:* cmake version >= 3.27 introduces a [bug](https://bugzilla-geant4.kek.jp/show_bug.cgi?id=2556). It can be solved by deleting this file:
 ```console
 sudo rm /opt/hep/geant4/lib/cmake/Geant4/Geant4PackageCache.cmake
 ```
 
 ```console
-export LD_LIBRARY_PATH="/opt/hep/geant4/lib"
-source /opt/hep/root/bin/thisroot.sh
+export LD_LIBRARY_PATH="/opt/hep/geant4/11.2.0/lib"
+source /opt/hep/root/6.30.02/bin/thisroot.sh
 
 mkdir dd4hep && cd dd4hep
 git clone https://github.com/AIDASoft/DD4hep.git source
 cd source
 git fetch --tags
-git checkout tags/v01-25-01
+git checkout tags/v01-27-02
 cd ..
 cmake -S source -B build \
-    -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_INSTALL_PREFIX="/opt/hep/dd4hep" \
-    -DDD4HEP_USE_GEANT4=On \
-    -DDD4HEP_USE_EDM4HEP=On \
-    -DBUILD_TESTING=Off \
+    -GNinja \
     -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_INSTALL_PREFIX="/opt/hep/dd4hep/01-27-02" \
+    -DDD4HEP_BUILD_PACKAGES="DDG4 DDDetectors DDRec UtilityApps" \
+    -DDD4HEP_USE_GEANT4=ON \
     -DDD4HEP_USE_XERCESC=ON \
+    -DDD4HEP_USE_EDM4HEP=ON \
+    -DBUILD_TESTING=Off \
     -DBUILD_DOCS=OFF \
-    -DCMAKE_PREFIX_PATH="/opt/hep/xerces-c;/opt/hep/geant4;/opt/hep/pythia8;/opt/hep/json;/opt/hep/hepmc3;/opt/hep/root;/opt/hep/podio;/opt/hep/edm4hep"
-sudo cmake --build build --target install -j8
-cd ..
-```
-
-Other Dependencies (WIP)
-========================
-THIS DOES NOT WORK
-For pyg4ometry I encountered som problems on my machine (macOS 13.3.1). Executing `pip install pyg4ometry` resulted in many error messages similar to `ld: warning: dylib (/usr/local/lib/libTKernel.dylib) was built for newer macOS version (13.0) than being linked (10.9)` after installing all dependencies with brew (cgal, opencascade, cmake, python3X). The problem seems to be with tcl/tk which is a dependecy of opencascade. To solve this problem, we install build it manually.
-
-```console
-mkdir tcl && cd tcl
-wget http://prdownloads.sourceforge.net/tcl/tcl8.7a5-src.tar.gz
-mkdir source
-tar -zxvf tcl8.7a5-src.tar.gz --strip-components=1 -C source
-cd source/unix
-./configure --prefix=/opt/deps/tcl --enable-64bit --enable-framework
-make
-sudo make install -j8
-cd ../../..
-
-mkdir tk && cd tk
-wget http://prdownloads.sourceforge.net/tcl/tk8.7a5-src.tar.gz
-mkdir source
-tar -zxvf tk8.7a5-src.tar.gz --strip-components=1 -C source
-cd source/unix
-./configure --prefix=/opt/deps/tk --enable-64bit --enable-framework --with-tcl=../../../tcl/source/unix
-make
-sudo make install -j8
-cd ../../..
-```
-
-
-```console
-mkdir tcl8613 && cd tcl8613
-wget http://prdownloads.sourceforge.net/tcl/tcl8.6.13-src.tar.gz
-mkdir source
-tar -zxvf tcl8.6.13-src.tar.gz --strip-components=1 -C source
-cd source/unix
-./configure --prefix=/opt/deps2/tcl --enable-64bit --enable-framework
-make
-sudo make install -j8
-cd ../../..
-
-mkdir tk8613 && cd tk8613
-wget http://prdownloads.sourceforge.net/tcl/tk8.6.13-src.tar.gz
-mkdir source
-tar -zxvf tk8.6.13-src.tar.gz --strip-components=1 -C source
-cd source/unix
-./configure --prefix=/opt/deps2/tk --enable-64bit --enable-framework --with-tcl=../../../tcl8613/source/unix
-make
-sudo make install -j8
-cd ../../..
-```
-
-cmake -S source -B build \
-    -DCMAKE_INSTALL_PREFIX=/opt/hep/json \
-    -DJSON_BuildTests=OFF
+    -DCMAKE_PREFIX_PATH="/opt/hep/geant4/11.2.0;/opt/hep/pythia8/3810;/opt/hep/json/3.11.3;/opt/hep/root/6.30.02;/opt/hep/podio/00-99;/opt/hep/edm4hep/00-10-03"
 sudo cmake --build build --target install -j8
 cd ..
 ```
