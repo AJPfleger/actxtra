@@ -21,6 +21,13 @@ rf = uproot.open(file_path)
 treename = rf.keys()[-1]  # "trackstates;1"  # Replace with the actual key name
 tree = rf[treename]
 
+# Surfaces to investigate
+volume_layer_pairs = []
+volume_layer_pairs.extend([(9, 2), (9, 4), (16, 2), (16, 4), (16, 6)])  # Pixel Barrel
+volume_layer_pairs.extend([(23, 2), (23, 4), (23, 6), (23, 8)])  # Strip Barrel
+volume_id_all = list(set(v_l_pair[0] for v_l_pair in volume_layer_pairs))
+layer_id_all = list(set(v_l_pair[1] for v_l_pair in volume_layer_pairs))
+
 # Binning for the histograms
 n_bins_leaf = 100
 n_bins_eta = 11
@@ -68,8 +75,8 @@ for leave in all_leaves:
     h = hist.Hist(
         hist.axis.Regular(bins=n_bins_leaf, start=h_min, stop=h_max, name=leave),
         hist.axis.Regular(bins=n_bins_eta, start=eta_min, stop=eta_max, name="eta"),
-        hist.axis.IntCategory([9, 16], name="volume"),
-        hist.axis.IntCategory([2, 4, 6], name="layer"),
+        hist.axis.IntCategory(volume_id_all, name="volume"),
+        hist.axis.IntCategory(layer_id_all, name="layer"),
     )
 
     all_hists.append(h)
