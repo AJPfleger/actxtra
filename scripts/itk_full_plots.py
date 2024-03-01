@@ -21,11 +21,12 @@ def get_bins(edges):
 
 
 def plot_surfaces_full(volume_layer_pairs, all_leaves, all_hists):
+    plot_cols = 5
+
     for v_l_pair in volume_layer_pairs:
         v_id = v_l_pair[0]
         l_id = v_l_pair[1]
 
-        plot_cols = 5
         fig, axes = plt.subplots(nrows=3, ncols=plot_cols, figsize=(12, 8))
         means_all_leaves = []
         rms_all_leaves = []
@@ -37,6 +38,17 @@ def plot_surfaces_full(volume_layer_pairs, all_leaves, all_hists):
                     ax=ax, label=f"{leave}", ls="solid", cbar=False
                 )
 
+                # Modify plot
+                ax.set_title(f"{leave}")
+                ax.set_xticks([])
+                ax.set_xlabel("")
+                if i % plot_cols == 0:
+                    ax.set_ylabel("pull")
+                else:
+                    ax.set_ylabel("")
+                    ax.set_yticks([])
+
+                # Prepare data for other plots
                 density = h[:, :, v_id * 1j, l_id * 1j].density()
 
                 bins_eta = get_bins(h[:, :, v_id * 1j, l_id * 1j].axes[0].edges)
@@ -56,16 +68,6 @@ def plot_surfaces_full(volume_layer_pairs, all_leaves, all_hists):
 
                 means_all_leaves.append(means_all_bins)
                 rms_all_leaves.append(rms_all_bins)
-
-                # Modify plot
-                ax.set_title(f"{leave}")
-                ax.set_xticks([])
-                ax.set_xlabel("")
-                if i % plot_cols == 0:
-                    ax.set_ylabel("pull")
-                else:
-                    ax.set_ylabel("")
-                    ax.set_yticks([])
 
             elif i < 2 * plot_cols:
                 ax.plot(bins_eta, means_all_leaves[i - plot_cols], ".")
@@ -100,6 +102,98 @@ def plot_surfaces_full(volume_layer_pairs, all_leaves, all_hists):
         # plt.savefig(f"pull_itk_vol{v_id}_lay{l_id}.pdf")
 
 
+def plot_surfaces_condensed(volume_layer_pairs, all_leaves, all_hists):
+    plot_cols = 5
+    fig, axes = plt.subplots(nrows=3, ncols=plot_cols, figsize=(12, 8))
+
+    means_all_leaves = []
+    rms_all_leaves = []
+
+    for i, (leave, ax, h) in enumerate(
+        zip(all_leaves * 3, axes.flatten(), all_hists * 3)
+    ):
+        if i < plot_cols:
+            h[:, :, 9 * 1j, 2 * 1j].plot2d(
+                ax=ax, label=f"{leave}", ls="solid", cbar=False
+            )  # TODO condense correctly
+
+            # Modify plot
+            ax.set_title(f"{leave}")
+            ax.set_xticks([])
+            ax.set_xlabel("")
+            if i % plot_cols == 0:
+                ax.set_ylabel("pull")
+            else:
+                ax.set_ylabel("")
+                ax.set_yticks([])
+
+            # Prepare data for other plots
+
+            bins_eta = get_bins(h.axes[0].edges)
+            bins_leave = get_bins(h.axes[1].edges)
+
+            means_all_surfaces = []
+            rms_all_surfaces = []
+            for v_l_pair in volume_layer_pairs:
+                v_id = v_l_pair[0]
+                l_id = v_l_pair[1]
+
+                density = h[:, :, v_id * 1j, l_id * 1j].density()
+
+                # Get means for other plots
+                means_all_bins = []
+                rms_all_bins = []
+                for density_row in density:
+                    m = sum(density_row * bins_leave) / sum(density_row)
+                    rms = np.sqrt(
+                        sum(density_row * (bins_leave - m) ** 2) / sum(density_row)
+                    )
+
+                    means_all_bins.append(m)
+                    rms_all_bins.append(rms)
+
+                means_all_surfaces.append(means_all_bins)
+                rms_all_surfaces.append(rms_all_bins)
+
+            means_all_leaves.append(means_all_surfaces)
+            rms_all_leaves.append(rms_all_surfaces)
+
+        elif i < 2 * plot_cols:
+            for means_all_surfaces in means_all_leaves[i - plot_cols]:
+                ax.plot(bins_eta, means_all_surfaces, ".-")
+            ax.plot([eta_min, eta_max], [0, 0], "k--")
+            ax.set_xlim(eta_min, eta_max)
+            ax.set_ylim(-0.1, 0.1)
+            ax.set_xticks([])
+            ax.set_xlabel("")
+            if i % plot_cols == 0:
+                ax.set_ylabel("$\\mu$")
+            else:
+                ax.set_ylabel("")
+                ax.set_yticks([])
+        else:
+            for rms_all_surfaces in rms_all_leaves[i - 2 * plot_cols]:
+                ax.plot(bins_eta, rms_all_surfaces, ".-")
+            ax.plot([eta_min, eta_max], [1, 1], "k--")
+            ax.set_xlim(eta_min, eta_max)
+            ax.set_ylim(0.8, 1.2)
+            ax.set_xlabel("$\\eta$")
+            if i % plot_cols == 0:
+                ax.set_ylabel("$\\sigma$")
+            else:
+                ax.set_ylabel("")
+                ax.set_yticks([])
+
+    ax.legend(volume_layer_pairs)
+
+    plt.suptitle(f"All surfaces", fontsize=14)
+    plt.tight_layout()
+    # Adjust spacing between subplots
+    plt.subplots_adjust(wspace=0.05, hspace=0.05)
+    plt.show()
+    # plt.savefig(f"pull_itk_vol{v_id}_lay{l_id}.pdf")
+
+
 # Open the ROOT file
 file_path = "../../gx2f-push/testexports/itk_output/itk_trackstates_fitter.root"
 rf = uproot.open(file_path)
@@ -111,7 +205,7 @@ tree = rf[treename]
 # Surfaces to investigate
 volume_layer_pairs = []
 volume_layer_pairs.extend([(9, 2), (9, 4), (16, 2), (16, 4), (16, 6)])  # Pixel Barrel
-volume_layer_pairs.extend([(23, 2), (23, 4), (23, 6), (23, 8)])  # Strip Barrel
+# volume_layer_pairs.extend([(23, 2), (23, 4), (23, 6), (23, 8)])  # Strip Barrel
 volume_id_all = list(set(v_l_pair[0] for v_l_pair in volume_layer_pairs))
 layer_id_all = list(set(v_l_pair[1] for v_l_pair in volume_layer_pairs))
 
@@ -194,7 +288,8 @@ else:
 
 print("*** Finished filling ***")
 
-plot_surfaces_full(volume_layer_pairs, all_leaves, all_hists)
+# plot_surfaces_full(volume_layer_pairs, all_leaves, all_hists)
+plot_surfaces_condensed(volume_layer_pairs, all_leaves, all_hists)
 
 
 # ITk Geometry
