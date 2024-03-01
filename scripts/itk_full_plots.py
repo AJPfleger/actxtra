@@ -20,10 +20,88 @@ def get_bins(edges):
     return bins
 
 
+def plot_surfaces_full(volume_layer_pairs, all_leaves, all_hists):
+    for v_l_pair in volume_layer_pairs:
+        v_id = v_l_pair[0]
+        l_id = v_l_pair[1]
+
+        plot_cols = 5
+        fig, axes = plt.subplots(nrows=3, ncols=plot_cols, figsize=(12, 8))
+        means_all_leaves = []
+        rms_all_leaves = []
+        for i, (leave, ax, h) in enumerate(
+            zip(all_leaves * 3, axes.flatten(), all_hists * 3)
+        ):
+            if i < plot_cols:
+                h[:, :, v_id * 1j, l_id * 1j].plot2d(
+                    ax=ax, label=f"{leave}", ls="solid", cbar=False
+                )
+
+                density = h[:, :, v_id * 1j, l_id * 1j].density()
+
+                bins_eta = get_bins(h[:, :, v_id * 1j, l_id * 1j].axes[0].edges)
+                bins_leave = get_bins(h[:, :, v_id * 1j, l_id * 1j].axes[1].edges)
+
+                # Get means for other plots
+                means_all_bins = []
+                rms_all_bins = []
+                for density_row in density:
+                    m = sum(density_row * bins_leave) / sum(density_row)
+                    rms = np.sqrt(
+                        sum(density_row * (bins_leave - m) ** 2) / sum(density_row)
+                    )
+
+                    means_all_bins.append(m)
+                    rms_all_bins.append(rms)
+
+                means_all_leaves.append(means_all_bins)
+                rms_all_leaves.append(rms_all_bins)
+
+                # Modify plot
+                ax.set_title(f"{leave}")
+                ax.set_xticks([])
+                ax.set_xlabel("")
+                if i % plot_cols == 0:
+                    ax.set_ylabel("pull")
+                else:
+                    ax.set_ylabel("")
+                    ax.set_yticks([])
+
+            elif i < 2 * plot_cols:
+                ax.plot(bins_eta, means_all_leaves[i - plot_cols], ".")
+                ax.plot([eta_min, eta_max], [0, 0], "k--")
+                ax.set_xlim(eta_min, eta_max)
+                ax.set_ylim(-0.1, 0.1)
+                ax.set_xticks([])
+                ax.set_xlabel("")
+                if i % plot_cols == 0:
+                    ax.set_ylabel("$\\mu$")
+                else:
+                    ax.set_ylabel("")
+                    ax.set_yticks([])
+            else:
+                ax.plot(bins_eta, rms_all_leaves[i - 2 * plot_cols], ".")
+                ax.plot([eta_min, eta_max], [1, 1], "k--")
+                ax.set_xlim(eta_min, eta_max)
+                ax.set_ylim(0.8, 1.2)
+                ax.set_xlabel("$\\eta$")
+                if i % plot_cols == 0:
+                    ax.set_ylabel("$\\sigma$")
+                else:
+                    ax.set_ylabel("")
+                    ax.set_yticks([])
+
+        plt.suptitle(f"Volume {v_id}, Layer {l_id}", fontsize=14)
+        plt.tight_layout()
+        # Adjust spacing between subplots
+        plt.subplots_adjust(wspace=0.05, hspace=0.05)
+        plt.show()
+        break
+        # plt.savefig(f"pull_itk_vol{v_id}_lay{l_id}.pdf")
+
+
 # Open the ROOT file
-file_path = (
-    "../../gx2f-push/testexports/itk_output_pixel_1kk/itk_trackstates_fitter.root"
-)
+file_path = "../../gx2f-push/testexports/itk_output/itk_trackstates_fitter.root"
 rf = uproot.open(file_path)
 
 # Choose a specific key (object) to extract data from
@@ -81,116 +159,42 @@ for leave in all_leaves:
     all_hists.append(h)
 
 # Fill histograms
-for df in tree.iterate(library="ak", how=dict):
-    data_eta = df["eta_ubs"]
-    volume_id = df["volume_id"]
-    layer_id = df["layer_id"]
+use_real_data = False
+if use_real_data:
+    for df in tree.iterate(library="ak", how=dict):
+        data_eta = df["eta_ubs"]
+        volume_id = df["volume_id"]
+        layer_id = df["layer_id"]
+
+        for leave_i, leave in enumerate(all_leaves):
+            data_leaf = df[leave]
+
+            all_hists[leave_i].fill(
+                ak.flatten(data_eta),
+                ak.flatten(data_leaf),
+                ak.flatten(volume_id),
+                ak.flatten(layer_id),
+            )
+else:
+    # fill with random for faster test
+    rand_size = 1_000_000
+    data_eta = np.random.normal(size=rand_size) * 2
+    volume_id = np.random.randint(20, size=rand_size)
+    layer_id = np.random.randint(6, size=rand_size)
 
     for leave_i, leave in enumerate(all_leaves):
-        data_leaf = df[leave]
+        data_leaf = np.random.normal(size=rand_size) + np.random.normal(size=1) * 0.05
 
         all_hists[leave_i].fill(
-            ak.flatten(data_eta),
-            ak.flatten(data_leaf),
-            ak.flatten(volume_id),
-            ak.flatten(layer_id),
+            data_eta,
+            data_leaf,
+            volume_id,
+            layer_id,
         )
 
-# # fill with random for faster test
-# rand_size = 1_000_000
-# data_eta = np.random.normal(size=rand_size) * 2
-# volume_id = np.random.randint(20, size=rand_size)
-# layer_id = np.random.randint(6, size=rand_size)
-#
-# for leave_i, leave in enumerate(all_leaves):
-#     data_leaf = np.random.normal(size=rand_size) + np.random.normal(size=1)
-#
-#     all_hists[leave_i].fill(
-#         data_eta,
-#         data_leaf,
-#         volume_id,
-#         layer_id,
-#     )
+print("*** Finished filling ***")
 
-print("*** after filling ***")
-
-for v_l_pair in volume_layer_pairs:
-    v_id = v_l_pair[0]
-    l_id = v_l_pair[1]
-
-    plot_cols = 5
-    fig, axes = plt.subplots(nrows=3, ncols=plot_cols, figsize=(12, 8))
-    means_all_leaves = []
-    rms_all_leaves = []
-    for i, (leave, ax, h) in enumerate(
-        zip(all_leaves * 3, axes.flatten(), all_hists * 3)
-    ):
-        if i < plot_cols:
-            h[:, :, v_id * 1j, l_id * 1j].plot2d(
-                ax=ax, label=f"{leave}", ls="solid", cbar=False
-            )
-
-            density = h[:, :, v_id * 1j, l_id * 1j].density()
-
-            bins_eta = get_bins(h[:, :, v_id * 1j, l_id * 1j].axes[0].edges)
-            bins_leave = get_bins(h[:, :, v_id * 1j, l_id * 1j].axes[1].edges)
-
-            # Get means for other plots
-            means_all_bins = []
-            rms_all_bins = []
-            for density_row in density:
-                m = sum(density_row * bins_leave) / sum(density_row)
-                rms = np.sqrt(
-                    sum(density_row * (bins_leave - m) ** 2) / sum(density_row)
-                )
-
-                means_all_bins.append(m)
-                rms_all_bins.append(rms)
-
-            means_all_leaves.append(means_all_bins)
-            rms_all_leaves.append(rms_all_bins)
-
-            # Modify plot
-            ax.set_title(f"{leave}")
-            ax.set_xticks([])
-            ax.set_xlabel("")
-            if i % plot_cols == 0:
-                ax.set_ylabel("pull")
-            else:
-                ax.set_ylabel("")
-                ax.set_yticks([])
-
-        elif i < 2 * plot_cols:
-            ax.plot(bins_eta, means_all_leaves[i - plot_cols], ".")
-            ax.plot([eta_min, eta_max], [0, 0], "k--")
-            ax.set_xlim(eta_min, eta_max)
-            ax.set_ylim(-0.1, 0.1)
-            ax.set_xticks([])
-            ax.set_xlabel("")
-            if i % plot_cols == 0:
-                ax.set_ylabel("$\\mu$")
-            else:
-                ax.set_ylabel("")
-                ax.set_yticks([])
-        else:
-            ax.plot(bins_eta, rms_all_leaves[i - 2 * plot_cols], ".")
-            ax.plot([eta_min, eta_max], [1, 1], "k--")
-            ax.set_xlim(eta_min, eta_max)
-            ax.set_ylim(0.8, 1.2)
-            ax.set_xlabel("$\\eta$")
-            if i % plot_cols == 0:
-                ax.set_ylabel("$\\sigma$")
-            else:
-                ax.set_ylabel("")
-                ax.set_yticks([])
-
-    plt.suptitle(f"Volume {v_id}, Layer {l_id}", fontsize=14)
-    plt.tight_layout()
-    # Adjust spacing between subplots
-    plt.subplots_adjust(wspace=0.05, hspace=0.05)
-    plt.show()
-    break
-    # plt.savefig(f"pull_itk_vol{v_id}_lay{l_id}.pdf")
+plot_surfaces_full(volume_layer_pairs, all_leaves, all_hists)
 
 
 # ITk Geometry
