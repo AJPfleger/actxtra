@@ -24,7 +24,7 @@ def plot_detector(df):
         # c=ak.flatten(layer_id),
         c=ak.flatten(volume_id),
         cmap="Spectral",
-        s=1
+        s=1,
     )
     # title
     plt.title("ODD Detector " + file_path)
@@ -33,10 +33,18 @@ def plot_detector(df):
     # print("ids", np.unique(ak.flatten(volume_id)))
     for i_v_id in np.unique(ak.flatten(volume_id)):
         # get x and y max and min value, filter out nan with ak
-        x_min = ak.min(ak.flatten(g_z[volume_id == i_v_id][~ak.is_none(g_z[volume_id == i_v_id])]))
-        x_max = ak.max(ak.flatten(g_z[volume_id == i_v_id][~ak.is_none(g_z[volume_id == i_v_id])]))
-        y_min = ak.min(ak.flatten(g_r[volume_id == i_v_id][~ak.is_none(g_r[volume_id == i_v_id])]))
-        y_max = ak.max(ak.flatten(g_r[volume_id == i_v_id][~ak.is_none(g_r[volume_id == i_v_id])]))
+        x_min = ak.min(
+            ak.flatten(g_z[volume_id == i_v_id][~ak.is_none(g_z[volume_id == i_v_id])])
+        )
+        x_max = ak.max(
+            ak.flatten(g_z[volume_id == i_v_id][~ak.is_none(g_z[volume_id == i_v_id])])
+        )
+        y_min = ak.min(
+            ak.flatten(g_r[volume_id == i_v_id][~ak.is_none(g_r[volume_id == i_v_id])])
+        )
+        y_max = ak.max(
+            ak.flatten(g_r[volume_id == i_v_id][~ak.is_none(g_r[volume_id == i_v_id])])
+        )
 
         # if x or y values are infinity
         if np.isinf(x_min) or np.isinf(x_max) or np.isinf(y_min) or np.isinf(y_max):
@@ -48,12 +56,11 @@ def plot_detector(df):
 
         regions.append({"x": x_mid, "y": y_mid, "label": f"vol {i_v_id}"})
 
-
     for region in regions:
         ax.annotate(
             region["label"],
             xy=(region["x"], region["y"]),
-            xytext=(region["x"], region["y"])
+            xytext=(region["x"], region["y"]),
         )
     plt.show()
 
