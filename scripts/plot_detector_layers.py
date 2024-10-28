@@ -17,8 +17,6 @@ def plot_detector(df):
 
     g_r = (g_x**2 + g_y**2) ** 0.5
 
-    # print(volume_id)
-
     fig, ax = plt.subplots()
     scatter = plt.scatter(
         ak.flatten(g_z),
