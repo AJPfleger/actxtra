@@ -60,7 +60,7 @@ def plot_pull_distribution(pulls, title):
     x = np.linspace(xmin, xmax, 201)
     p = norm.pdf(x, mu, std)
     plt.plot(x, p, "k")
-    plt.title(f"{title}: $\mu$ = {mu:.3f}, $\sigma$ = {std:.3f}")
+    plt.title(fr"{title}: $\mu$ = {mu:.3f}, $\sigma$ = {std:.3f}")
     # plt.xlim(0, 100)
     # plt.savefig("second_derivatives_false.pdf")
     plt.show()
@@ -101,11 +101,11 @@ def plot_current_state(
     predicted_hits,
     measurments_raw,
     n="",
-    params_pulls="",
+    params_pulls=None,
     plot_title="",
     plot_filename="",
-    start_params="",
-    start_traj="",
+    start_params=None,
+    start_traj=None,
 ):
     if n != "":
         print(f"\nmax updates = {n}")
@@ -116,7 +116,7 @@ def plot_current_state(
         f"a:\n{a}\n"
         f"updated_cov:\n{updated_cov}"
     )
-    if params_pulls != "":
+    if params_pulls is not None:
         print(f"pulls: {params_pulls}\n")
     print("\n")
 
@@ -138,7 +138,7 @@ def plot_current_state(
         ax.plot(geo_layers, measurments_all, "gx")
 
         # Trajectories
-        if start_params != "" and start_traj != "":
+        if start_params is not None and start_traj is not None:
             ax.plot(
                 np.append(0, geo_layers),
                 np.append(start_params[0], start_traj),

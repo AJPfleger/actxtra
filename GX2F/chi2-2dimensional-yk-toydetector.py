@@ -72,21 +72,21 @@ def get_pulls(plot_all, layers=12, cov=0.1):
         )
 
         c2u.plot_current_state(
-            updated_params,
-            true_params,
-            a,
-            updated_cov,
-            measurments,  # measurments_all,
-            detector_layers,  # geo_layers,
-            geo_scatter_sigma,
-            predicted_hits,
-            measurments_raw,
-            "",
-            params_pulls,
-            "2D-Fit [y,k]",
-            "",  # "yk-toydetector.pdf"
-            start_params,
-            start_traj,
+            updated_params=updated_params,
+            true_params=true_params,
+            a=a,
+            updated_cov=updated_cov,
+            measurments_all=measurments,
+            geo_layers=detector_layers,
+            geo_scatter_sigma=geo_scatter_sigma,
+            predicted_hits=predicted_hits,
+            measurments_raw=measurments_raw,
+            n="",
+            params_pulls=params_pulls,
+            plot_title="2D-Fit [y,k]",
+            plot_filename="",
+            start_params=start_params,
+            start_traj=start_traj,
         )
 
     ## root fit
@@ -127,7 +127,7 @@ c2u.plot_pull_distribution(y_pul, f"y_pulls ({layers} hits)")
 c2u.plot_pull_distribution(y_pul_root, f"y_pulls_root ({layers} hits)")
 c2u.plot_pull_distribution(k_pul, f"k_pulls ({layers} hits)")
 c2u.plot_pull_distribution(k_pul_root, f"k_pulls_root ({layers} hits)")
-c2u.plot_chi2_distribution(chi2sum, f"$\chi^2$ ([y,k], {layers} hits)")
+c2u.plot_chi2_distribution(chi2sum, fr"$\chi^2$ ([y,k], {layers} hits)")
 
 
 from matplotlib.patches import Ellipse
